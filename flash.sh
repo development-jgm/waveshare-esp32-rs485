@@ -118,17 +118,17 @@ echo "        Make sure the ESP32 USB cable is connected."
 echo
 read -p "Press Enter to flash (Ctrl+C to cancel)..."
 
-esptool.py \
+esptool \
     --chip esp32s3 \
     --port "$PORT" \
     --baud 460800 \
     --no-stub \
-    --before default_reset \
-    --after hard_reset \
-    write_flash \
-    --flash_mode dio \
-    --flash_freq 80m \
-    --flash_size 16MB \
+    --before default-reset \
+    --after hard-reset \
+    write-flash \
+    --flash-mode dio \
+    --flash-freq 80m \
+    --flash-size 16MB \
     0x0 "$FIRMWARE_DIR/build/MAIN_ALL.ino.merged.bin"
 
 echo
