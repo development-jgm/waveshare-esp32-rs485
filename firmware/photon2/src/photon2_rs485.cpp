@@ -28,11 +28,10 @@ static const uint8_t CMD_QUERY_DI[8] = {
 // ── Low-level RS485 ───────────────────────────────────────────────────────────
 
 static void rs485Send(const uint8_t *buf, size_t len) {
-    digitalWrite(DE_RE, HIGH);          // switch to transmit
+    // DE/RE always HIGH (transmit) — held in setup(); no switching needed
     Serial1.write(buf, len);
-    Serial1.flush();                    // block until shift register is empty
-    delayMicroseconds(2000);            // guard time: 2 × byte period at 9600 baud
-    digitalWrite(DE_RE, LOW);           // back to receive
+    Serial1.flush();
+    delayMicroseconds(2000);
 }
 
 // Query DI state for one device. Returns bitmask (0–255) or negative on error.
@@ -104,7 +103,7 @@ int cloudQueryDI(String args) {
 
 void setup() {
     pinMode(DE_RE, OUTPUT);
-    digitalWrite(DE_RE, LOW);       // start in receive mode
+    digitalWrite(DE_RE, HIGH);      // DE always HIGH: driver permanently enabled
 
     Serial1.begin(9600, SERIAL_8N1);
 
