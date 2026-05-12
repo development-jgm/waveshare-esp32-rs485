@@ -129,41 +129,51 @@ void RS485Task(void *parameter) {
 void RS485_Loop()
 {
   uint8_t Receive_Flag = 0;       // Receiving mark
-  Receive_Flag = lidarSerial.available();    
+  Receive_Flag = lidarSerial.available();
 
   if (Receive_Flag > 0) {
-    if(RS485_cmd_Time > 1)              // Time greater than 1 millisecond
+    if(RS485_cmd_Time > 1)
       delay((uint16_t)RS485_cmd_Time);
-    else                      // Time is less than 1 millisecond 
+    else
       delay(1);
     Receive_Flag = lidarSerial.available();
-    lidarSerial.readBytes(buf, Receive_Flag);              // The Receive_Flag length is read
-    if(Receive_Flag == 8){
-      // Query digital inputs: 06 01 00 00 00 00 00 00 → respond with DI bitmask
+    lidarSerial.readBytes(buf, Receive_Flag);
+    if(Receive_Flag == 9){
+      // Byte 0: device address — discard if not ours
+      if(buf[0] != DEVICE_ADDRESS){
+        Receive_Flag = 0;
+        memset(buf, 0, sizeof(buf));
+        return;
+      }
+      uint8_t *cmd = buf + 1;  // 8-byte payload after address byte
+
+      // Query digital inputs: ADDR 06 01 00 00 00 00 00 00
       uint8_t query_di[8] = {0x06, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-      if(std::equal(std::begin(buf), std::begin(buf) + 8, std::begin(query_di))){
+      if(std::equal(cmd, cmd + 8, std::begin(query_di))){
         extern bool DIN_Flag[8];
         uint8_t di_byte = 0;
         for(int j = 0; j < 8; j++){
           if(DIN_Flag[j]) di_byte |= (1 << j);
         }
-        uint8_t response[8] = {0x06, 0x01, di_byte, 0x00, 0x00, 0x00, 0x00, 0x00};
+        uint8_t response[9] = {DEVICE_ADDRESS, 0x06, 0x01, di_byte, 0x00, 0x00, 0x00, 0x00, 0x00};
         delay(2);  // RS485 half-duplex turnaround
-        lidarSerial.write(response, 8);
+        lidarSerial.write(response, 9);
         printf("RS485 DI query → 0x%02X\r\n", di_byte);
-        Receive_Flag=0;
-        memset(buf,0, sizeof(buf));
+        Receive_Flag = 0;
+        memset(buf, 0, sizeof(buf));
         return;
       }
-      uint8_t i=0;
-      for(i=0;i<numRows;i++){
-        bool result = std::equal(std::begin(buf), std::begin(buf) + 8, std::begin(data[i]));    // Compare two arrays
+
+      // Relay toggle commands: match 8-byte payload against command table
+      uint8_t i = 0;
+      for(i = 0; i < numRows; i++){
+        bool result = std::equal(cmd, cmd + 8, std::begin(data[i]));
         if(result){
           if(i < numRows-1)
-            buf[0] = i+1+48;
+            cmd[0] = i+1+48;
           else if(i == numRows-1)
-            buf[0] = 48;
-          Relay_Analysis(buf,RS485_Mode);
+            cmd[0] = 48;
+          Relay_Analysis(cmd, RS485_Mode);
           break;
         }
       }
@@ -171,9 +181,9 @@ void RS485_Loop()
         printf("Note : Non-instruction data was received - RS485 !\r\n");
     }
     else{
-      printf("Note : Non-instruction data was received .Number of bytes: %d - RS485 !\r\n",Receive_Flag);
+      printf("Note : Non-instruction data was received. Bytes: %d - RS485 !\r\n", Receive_Flag);
     }
-    Receive_Flag=0;
-    memset(buf,0, sizeof(buf));
+    Receive_Flag = 0;
+    memset(buf, 0, sizeof(buf));
   }
 }

@@ -95,29 +95,29 @@ def open_port(port: str, baudrate: int) -> serial.Serial:
     return ser
 
 
-def relay_on(ser: serial.Serial, channel: int):
+def relay_on(ser: serial.Serial, channel: int, device: int = 1):
     if not 1 <= channel <= 8:
         raise ValueError(f"Channel must be 1–8, got {channel}")
-    ser.write(_CMD_TOGGLE[channel - 1])
+    ser.write(bytes([device]) + _CMD_TOGGLE[channel - 1])
     time.sleep(0.05)
 
 
-def relay_off(ser: serial.Serial, channel: int):
+def relay_off(ser: serial.Serial, channel: int, device: int = 1):
     if not 1 <= channel <= 8:
         raise ValueError(f"Channel must be 1–8, got {channel}")
-    ser.write(_CMD_TOGGLE[channel - 1])
+    ser.write(bytes([device]) + _CMD_TOGGLE[channel - 1])
     time.sleep(0.05)
 
 
-def get_inputs(ser: serial.Serial) -> list:
+def get_inputs(ser: serial.Serial, device: int = 1) -> list:
     """Return list of 8 bools (True = DI HIGH). Returns all False on timeout."""
     ser.reset_input_buffer()
-    ser.write(_CMD_QUERY_INPUTS)
+    ser.write(bytes([device]) + _CMD_QUERY_INPUTS)
     time.sleep(0.1)
-    if ser.in_waiting >= 8:
-        response = ser.read(8)
-        if response[0] == 0x06 and response[1] == 0x01:
-            di_byte = response[2]
+    if ser.in_waiting >= 9:
+        response = ser.read(9)
+        if response[0] == device and response[1] == 0x06 and response[2] == 0x01:
+            di_byte = response[3]
             return [(di_byte >> i) & 1 == 1 for i in range(8)]
     return [False] * 8
 
@@ -148,10 +148,11 @@ def cmd_relay(args):
     try:
         ch = args.channel
         ms = args.duration
-        print(f"[device {args.device[0]}] Relay {ch} — pulse {ms} ms …", end="", flush=True)
-        relay_on(ser, ch)
+        dev = args.device[0]
+        print(f"[device {dev}] Relay {ch} — pulse {ms} ms …", end="", flush=True)
+        relay_on(ser, ch, dev)
         time.sleep(ms / 1000.0)
-        relay_off(ser, ch)
+        relay_off(ser, ch, dev)
         print(" done")
     finally:
         ser.close()
@@ -161,7 +162,7 @@ def cmd_status(args):
     for dev in args.device:
         ser = open_port(args.port, args.baudrate)
         try:
-            inputs = get_inputs(ser)
+            inputs = get_inputs(ser, dev)
         finally:
             ser.close()
 
@@ -191,7 +192,7 @@ def cmd_poll(args):
             lines = []
             for dev, ser in connections.items():
                 try:
-                    inputs = get_inputs(ser)
+                    inputs = get_inputs(ser, dev)
                 except Exception as e:
                     lines.append(f"Device {dev}: ERROR {e}")
                     continue
