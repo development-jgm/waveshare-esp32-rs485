@@ -123,7 +123,7 @@ esptool \
     --port "$PORT" \
     --baud 460800 \
     --no-stub \
-    --before default-reset \
+    --before no-reset \
     --after hard-reset \
     write-flash \
     --flash-mode dio \
