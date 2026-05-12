@@ -34,13 +34,13 @@ The module uses `INPUT_PULLUP`. The optocouplers pull the pin low when active:
 The script decodes two signals per machine:
 
 ```
-plugged = not inputs[plugged_di]    # opto ON = plugged to mains
+plugged = not inputs[plugged_di]          # opto ON = plugged to mains
 running = plugged and inputs[running_di]  # running opto ON = idle (normally-closed)
 ```
 
 ### Relay wiring
 
-Use **COM + NO** contacts for normally-open activation, or **COM + NC** if the machine expects a break signal. Test with the `relay` command.
+Use **COM + NC** contacts if the machine expects a break signal (circuit normally closed, opened on activation). Use **COM + NO** for normally-open activation. Test with the `relay` command.
 
 ---
 
@@ -59,7 +59,7 @@ pip install -r requirements.txt
 
 ```bash
 sudo usermod -aG dialout $USER
-# Log out and back in, or:
+# Log out and back in, or apply immediately:
 newgrp dialout
 ```
 
@@ -67,9 +67,55 @@ Find your dongle's port:
 
 ```bash
 ls /dev/ttyUSB* /dev/ttyACM*
-# or with dmesg:
+# or:
 dmesg | tail -20
 ```
+
+---
+
+## Flashing the firmware
+
+The module must run the modified firmware included in `firmware/MAIN_ALL/` before the control tool will work. The modifications are:
+
+- **`WS_RS485.cpp`** — adds a DI query command (`06 01 00 00 00 00 00 00`) that responds with the 8 digital input states as a bitmask
+- **`WS_DIN.h`** — `Relay_Immediate_Default = 0` disables DI→relay auto-mirroring (prevents relays firing when a machine is plugged in)
+
+### Prerequisites
+
+`arduino-cli` and `esptool` are installed automatically by `flash.sh`. You only need:
+
+```bash
+# Make sure pip dependencies are installed (includes esptool)
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Flash steps
+
+1. Connect the ESP32 module via **USB cable** (not the RS485 dongle — use the USB-C port on the module itself)
+2. Run the flash script:
+
+```bash
+chmod +x flash.sh
+
+# Flash device 1 (default, port auto-detected)
+./flash.sh
+
+# Explicit port
+./flash.sh --port /dev/ttyACM0
+
+# Flash as device 2 (for multi-unit bus)
+./flash.sh --address 2 --port /dev/ttyACM0
+```
+
+3. When flashing is complete, **disconnect the USB cable**
+4. Connect the RS485 dongle and test:
+
+```bash
+python3 esp32_control.py status
+```
+
+> **Note:** If `esptool.py` is not found, the venv installs it via `pip install -r requirements.txt`. Make sure the venv is active (`source venv/bin/activate`) before running `flash.sh`.
 
 ---
 
@@ -146,23 +192,24 @@ Adjust `MACHINE_DI` in `esp32_control.py` to match your physical wiring.
 
 ## Multi-device RS485 bus
 
-Up to 3 modules can share the same RS485 bus. Each must be flashed with a unique device address. The `--device` flag selects which unit to address.
+Up to 3 modules can share the same RS485 bus. Each must be flashed with a unique device address using `--address N`:
 
-> **Requires firmware modification.** With the default Waveshare firmware all units respond to the same commands — they must be reflashed with addressed firmware (9-byte protocol, `DEVICE_ADDRESS` define in `WS_RS485.h`).
+```bash
+./flash.sh --address 1 --port /dev/ttyACM0   # first unit
+./flash.sh --address 2 --port /dev/ttyACM0   # second unit
+./flash.sh --address 3 --port /dev/ttyACM0   # third unit
+```
+
+Then poll all devices:
+
+```bash
+python3 esp32_control.py poll --device 1 2 3
+```
+
+> **Note:** Multi-device addressing requires the 9-byte addressed protocol in the firmware. The current firmware supports a single device address (`DEVICE_ADDRESS` in `WS_RS485.h`). Full multi-device bus arbitration is a planned firmware update.
 
 ---
 
 ## FTDI dongle note
 
 FTDI FT232R dongles send RTS/CTS flowcontrol URBs by default, which causes a USB disconnect (errno 5) after the first RS485 write. The script disables RTS/CTS and DTR/DSR on open and explicitly clears both lines to prevent this.
-
----
-
-## Firmware
-
-The tool requires the **modified Waveshare MAIN_ALL firmware** with:
-
-- Custom DI query command (`06 01 00 00 00 00 00 00` → response with DI bitmask)
-- `Relay_Immediate_Default = 0` in `WS_DIN.h` (disables DI→relay auto-mirroring)
-
-Source and flash script are in the [Lavamax SmartKiosk](https://github.com/development-jgm/Lavamax_SmartKiosk) project.
