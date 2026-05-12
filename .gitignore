@@ -1,2 +1,3 @@
 venv/
 firmware/MAIN_ALL/build/
+firmware/photon2/*.bin

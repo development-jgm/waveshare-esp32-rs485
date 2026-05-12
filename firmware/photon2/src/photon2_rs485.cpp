@@ -54,7 +54,7 @@ static int queryDevice(uint8_t addr) {
     }
 
     uint8_t resp[9];
-    Serial1.readBytes(resp, 9);
+    Serial1.readBytes((char*)resp, 9);
 
     if (resp[0] == addr && resp[1] == 0x06 && resp[2] == 0x01) {
         return resp[3];     // DI bitmask
