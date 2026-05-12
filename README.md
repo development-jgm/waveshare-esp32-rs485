@@ -1,6 +1,6 @@
 # Waveshare ESP32 RS485 Control Tool
 
-Command-line tool to control a **Waveshare ESP32-S3-POE-ETH-8DI-8RO** module over RS485 serial. Supports relay activation with configurable pulse duration and continuous digital input polling.
+Command-line tool to control up to 3 **Waveshare ESP32-S3-POE-ETH-8DI-8RO** modules over a shared RS485 bus. Supports per-device relay activation with configurable pulse duration and continuous digital input polling.
 
 ## Hardware
 
@@ -8,7 +8,7 @@ Command-line tool to control a **Waveshare ESP32-S3-POE-ETH-8DI-8RO** module ove
 |-----------|--------|
 | Module | Waveshare ESP32-S3-POE-ETH-8DI-8RO |
 | Interface | RS485 (9600 baud 8N1) |
-| Dongle | USB-to-RS485 (FTDI FT232R recommended) |
+| Dongle | USB-to-RS485 — appears as `/dev/ttyUSB0` on Linux |
 | Relays | 8× (10A 250VAC) — NO/COM/NC contacts |
 | Inputs | 8× optically isolated digital inputs (INPUT_PULLUP) |
 
@@ -77,45 +77,43 @@ dmesg | tail -20
 
 The module must run the modified firmware included in `firmware/MAIN_ALL/` before the control tool will work. The modifications are:
 
-- **`WS_RS485.cpp`** — adds a DI query command (`06 01 00 00 00 00 00 00`) that responds with the 8 digital input states as a bitmask
+- **`WS_RS485.cpp`** — implements the 9-byte addressed protocol and adds a DI query command that responds with the 8 digital input states as a bitmask
 - **`WS_DIN.h`** — `Relay_Immediate_Default = 0` disables DI→relay auto-mirroring (prevents relays firing when a machine is plugged in)
 
-### Prerequisites
+### Entering bootloader mode (required before every flash)
 
-`arduino-cli` and `esptool` are installed automatically by `flash.sh`. You only need:
+The ESP32-S3 USB JTAG interface does not support automatic reset into download mode. You must put the module into bootloader mode manually each time:
 
-```bash
-# Make sure pip dependencies are installed (includes esptool)
-source venv/bin/activate
-pip install -r requirements.txt
-```
+1. **Disconnect** the USB cable from the module
+2. **Hold** the **BOOT** button
+3. **Connect** the USB cable while holding BOOT
+4. **Release** BOOT
+
+The module will stay in ROM bootloader mode (stable USB connection) until flashed and reset.
 
 ### Flash steps
 
-1. Connect the ESP32 module via **USB cable** (not the RS485 dongle — use the USB-C port on the module itself)
-2. Run the flash script:
-
 ```bash
-chmod +x flash.sh
+source venv/bin/activate
 
-# Flash device 1 (default, port auto-detected)
-./flash.sh
+# Flash as device 1 (port auto-detected)
+./flash.sh --address 1
+
+# Flash as device 2
+./flash.sh --address 2
 
 # Explicit port
-./flash.sh --port /dev/ttyACM0
-
-# Flash as device 2 (for multi-unit bus)
-./flash.sh --address 2 --port /dev/ttyACM0
+./flash.sh --address 1 --port /dev/ttyACM0
 ```
 
-3. When flashing is complete, **disconnect the USB cable**
-4. Connect the RS485 dongle and test:
+After flashing:
+1. **Disconnect** the USB cable from the module
+2. **Connect** the module to the RS485 bus via the dongle
+3. Test:
 
 ```bash
-python3 esp32_control.py status
+python3 esp32_control.py --port /dev/ttyUSB0 status
 ```
-
-> **Note:** If `esptool.py` is not found, the venv installs it via `pip install -r requirements.txt`. Make sure the venv is active (`source venv/bin/activate`) before running `flash.sh`.
 
 ---
 
@@ -124,20 +122,17 @@ python3 esp32_control.py status
 ```bash
 source venv/bin/activate
 
-# Pulse relay 1 for 100 ms (default) on /dev/ttyUSB0 (default port)
-python3 esp32_control.py relay --channel 1
+# One-shot status of all digital inputs, device 1
+python3 esp32_control.py --port /dev/ttyUSB0 status
 
-# Pulse relay 2 for 500 ms on a specific port
-python3 esp32_control.py relay --port /dev/ttyUSB1 --channel 2 --duration 500
+# Pulse relay 1 on device 1 for 100 ms (default)
+python3 esp32_control.py --port /dev/ttyUSB0 relay --channel 1
 
-# One-shot status of all digital inputs
-python3 esp32_control.py status
+# Pulse relay 1 on device 2 for 500 ms
+python3 esp32_control.py --port /dev/ttyUSB0 relay --device 2 --channel 1 --duration 500
 
-# Continuous polling, refreshed every 500 ms
-python3 esp32_control.py poll
-
-# Poll every 200 ms
-python3 esp32_control.py poll --interval 0.2
+# Continuous polling of both devices, refreshed every 500 ms
+python3 esp32_control.py --port /dev/ttyUSB0 poll --device 1 2
 ```
 
 ### Global options
@@ -157,7 +152,7 @@ python3 esp32_control.py relay --channel N [--duration MS] [--device N]
 |--------|---------|-------------|
 | `--channel N` | *(required)* | Relay channel 1–8 |
 | `--duration MS` | `100` | Pulse duration in milliseconds |
-| `--device N` | `1` | Device address (for multi-unit bus) |
+| `--device N` | `1` | Device address (1–3) |
 
 ### `status` — one-shot DI read
 
@@ -165,7 +160,7 @@ python3 esp32_control.py relay --channel N [--duration MS] [--device N]
 python3 esp32_control.py status [--device N [N ...]]
 ```
 
-Prints raw DI values and decoded machine states.
+Prints raw DI values and decoded machine states for each device.
 
 ### `poll` — continuous monitoring
 
@@ -174,6 +169,14 @@ python3 esp32_control.py poll [--device N [N ...]] [--interval SEC]
 ```
 
 Refreshes the terminal in place. Press `Ctrl+C` to stop.
+
+---
+
+## RS485 protocol
+
+Commands are **9 bytes**: `[DEVICE_ADDRESS] + [8-byte payload]`. Each module silently discards packets not addressed to it, so all devices can share the same bus without collisions.
+
+DI query response is also 9 bytes: `[DEVICE_ADDRESS, 0x06, 0x01, DI_BITMASK, 0x00, 0x00, 0x00, 0x00, 0x00]`.
 
 ---
 
@@ -192,21 +195,17 @@ Adjust `MACHINE_DI` in `esp32_control.py` to match your physical wiring.
 
 ## Multi-device RS485 bus
 
-Up to 3 modules can share the same RS485 bus. Each must be flashed with a unique device address using `--address N`:
+Up to 3 modules can share the same RS485 bus. Each must be flashed with a unique address using `--address N`. Flash each module one at a time via USB, then connect all to the bus via the RS485 dongle:
 
 ```bash
-./flash.sh --address 1 --port /dev/ttyACM0   # first unit
-./flash.sh --address 2 --port /dev/ttyACM0   # second unit
-./flash.sh --address 3 --port /dev/ttyACM0   # third unit
+# Flash each module individually (with BOOT button procedure each time)
+./flash.sh --address 1
+./flash.sh --address 2
+./flash.sh --address 3
+
+# Then poll all from the RS485 dongle
+python3 esp32_control.py --port /dev/ttyUSB0 poll --device 1 2 3
 ```
-
-Then poll all devices:
-
-```bash
-python3 esp32_control.py poll --device 1 2 3
-```
-
-> **Note:** Multi-device addressing requires the 9-byte addressed protocol in the firmware. The current firmware supports a single device address (`DEVICE_ADDRESS` in `WS_RS485.h`). Full multi-device bus arbitration is a planned firmware update.
 
 ---
 
