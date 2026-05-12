@@ -122,6 +122,83 @@ def get_inputs(ser: serial.Serial, device: int = 1) -> list:
     return [False] * 8
 
 
+# ── Transport layer ───────────────────────────────────────────────────────────
+#
+# Both transports expose the same three methods:
+#   relay_pulse(device, channel, duration_ms)
+#   get_inputs(device) → list[bool]
+#   close()
+
+class _SerialTransport:
+    def __init__(self, port: str, baudrate: int):
+        self._ser = open_port(port, baudrate)
+        self._port = port
+
+    def relay_pulse(self, device: int, channel: int, duration_ms: int):
+        relay_on(self._ser, channel, device)
+        time.sleep(duration_ms / 1000.0)
+        relay_off(self._ser, channel, device)
+
+    def get_inputs(self, device: int) -> list:
+        return get_inputs(self._ser, device)
+
+    def close(self):
+        self._ser.close()
+
+    @property
+    def label(self) -> str:
+        return self._port
+
+
+class _ParticleTransport:
+    _API = "https://api.particle.io/v1/devices"
+
+    def __init__(self, photon_id: str, token: str):
+        import requests as _req
+        self._req = _req
+        self._url = f"{self._API}/{photon_id}"
+        self._headers = {"Authorization": f"Bearer {token}"}
+        self._id = photon_id
+
+    def _call(self, func: str, arg: str) -> int:
+        r = self._req.post(
+            f"{self._url}/{func}",
+            data={"arg": arg},
+            headers=self._headers,
+            timeout=15,
+        )
+        r.raise_for_status()
+        return r.json()["return_value"]
+
+    def relay_pulse(self, device: int, channel: int, duration_ms: int):
+        ret = self._call("relay", f"{device},{channel},{duration_ms}")
+        if ret < 0:
+            raise RuntimeError(f"Relay failed (device={device} ch={channel} ret={ret})")
+
+    def get_inputs(self, device: int) -> list:
+        bitmask = self._call("queryDI", str(device))
+        if bitmask < 0:
+            return [False] * 8
+        return [(bitmask >> i) & 1 == 1 for i in range(8)]
+
+    def close(self):
+        pass
+
+    @property
+    def label(self) -> str:
+        return f"Particle:{self._id[:8]}"
+
+
+def _build_transport(args):
+    if getattr(args, "photon", None):
+        token = os.environ.get("PARTICLE_TOKEN")
+        if not token:
+            print("ERROR: PARTICLE_TOKEN environment variable not set.", file=sys.stderr)
+            sys.exit(1)
+        return _ParticleTransport(args.photon, token)
+    return _SerialTransport(args.port, args.baudrate)
+
+
 # ── State decoding ─────────────────────────────────────────────────────────────
 
 def decode_inputs(inputs: list) -> dict:
@@ -144,55 +221,42 @@ def format_state(machine: int, state: dict) -> str:
 # ── Commands ───────────────────────────────────────────────────────────────────
 
 def cmd_relay(args):
-    ser = open_port(args.port, args.baudrate)
+    t = _build_transport(args)
     try:
-        ch = args.channel
-        ms = args.duration
-        dev = args.device[0]
+        dev, ch, ms = args.device[0], args.channel, args.duration
         print(f"[device {dev}] Relay {ch} — pulse {ms} ms …", end="", flush=True)
-        relay_on(ser, ch, dev)
-        time.sleep(ms / 1000.0)
-        relay_off(ser, ch, dev)
+        t.relay_pulse(dev, ch, ms)
         print(" done")
     finally:
-        ser.close()
+        t.close()
 
 
 def cmd_status(args):
-    for dev in args.device:
-        ser = open_port(args.port, args.baudrate)
-        try:
-            inputs = get_inputs(ser, dev)
-        finally:
-            ser.close()
-
-        states = decode_inputs(inputs)
-        raw = " ".join(f"DI{i+1}={'1' if v else '0'}" for i, v in enumerate(inputs))
-        print(f"\n── Device {dev} ({args.port}) ─────────────────────────")
-        print(f"  Raw: {raw}")
-        for machine, state in states.items():
-            print(format_state(machine, state))
+    t = _build_transport(args)
+    try:
+        for dev in args.device:
+            inputs = t.get_inputs(dev)
+            states = decode_inputs(inputs)
+            raw = " ".join(f"DI{i+1}={'1' if v else '0'}" for i, v in enumerate(inputs))
+            print(f"\n── Device {dev} ({t.label}) ─────────────────────────")
+            print(f"  Raw: {raw}")
+            for machine, state in states.items():
+                print(format_state(machine, state))
+    finally:
+        t.close()
 
 
 def cmd_poll(args):
-    # Open one Serial per device (on shared bus they all use the same port)
-    connections = {}
-    for dev in args.device:
-        try:
-            connections[dev] = open_port(args.port, args.baudrate)
-        except Exception as e:
-            print(f"ERROR: Cannot open {args.port} for device {dev}: {e}")
-            sys.exit(1)
-
-    print(f"Polling device(s) {args.device} on {args.port} — Ctrl+C to stop.\n")
+    t = _build_transport(args)
+    print(f"Polling device(s) {args.device} via {t.label} — Ctrl+C to stop.\n")
     prev_lines = 0
 
     try:
         while True:
             lines = []
-            for dev, ser in connections.items():
+            for dev in args.device:
                 try:
-                    inputs = get_inputs(ser, dev)
+                    inputs = t.get_inputs(dev)
                 except Exception as e:
                     lines.append(f"Device {dev}: ERROR {e}")
                     continue
@@ -216,8 +280,7 @@ def cmd_poll(args):
     except KeyboardInterrupt:
         print("\nStopped.")
     finally:
-        for ser in connections.values():
-            ser.close()
+        t.close()
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
@@ -232,6 +295,9 @@ def main():
                         help="Serial port (default: /dev/ttyUSB0)")
     parser.add_argument("--baudrate", type=int, default=9600,
                         help="Baud rate (default: 9600)")
+    parser.add_argument("--photon",   metavar="DEVICE_ID",
+                        help="Particle device ID — use Particle Cloud instead of serial. "
+                             "Requires PARTICLE_TOKEN env var.")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
