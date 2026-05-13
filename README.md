@@ -8,19 +8,31 @@ Command-line tool to control up to 3 **Waveshare ESP32-S3-POE-ETH-8DI-8RO** modu
 |-----------|--------|
 | Module | Waveshare ESP32-S3-POE-ETH-8DI-8RO |
 | Interface | RS485 (9600 baud 8N1) |
-| Dongle | USB-to-RS485 — appears as `/dev/ttyUSB0` on Linux |
+| RS485 bridge | Particle Photon 2 + MAX3485 breakout (Wi-Fi → RS485) |
 | Relays | 8× (10A 250VAC) — NO/COM/NC contacts |
 | Inputs | 8× optically isolated digital inputs (INPUT_PULLUP) |
 
-### Wiring the RS485 dongle
+## Wiring
+
+### Particle Photon 2 + MAX3485 (production RS485 bridge)
 
 ```
-Dongle A+ → Module RS485 A+
-Dongle B- → Module RS485 B-
-Dongle GND → Module DGND  (optional — see note)
+Photon 2 pin    MAX3485 breakout    Notes
+────────────    ────────────────    ─────────────────────────────────
+TX              RX                  ← breakout RX = DI (driver input)
+RX              TX                  ← breakout TX = RO (receiver output)
+D2              EN                  HIGH=transmit, LOW=receive
+3V3             VCC
+GND             GND (VCC side)
+                A  ─────────────── Waveshare RS485 A
+                B  ─────────────── Waveshare RS485 B
 ```
 
-> **GND reference:** RS485 is differential, so A+B alone is sufficient when both ends share a close ground potential (same enclosure, same power rail, short cable). Add a GND wire if communication is unreliable across separate power sources or long cable runs. If you do connect GND, use **DGND** on the Waveshare terminal block — not PE, which is chassis/shield ground.
+> **MAX3485 breakout TX/RX labeling:** these generic AliExpress breakouts label pins from the **chip's** perspective, not the MCU's. `RX` on the breakout is the Driver Input (DI) — connect it to MCU TX. `TX` is the Receiver Output (RO) — connect it to MCU RX. This is the opposite of standard UART cross-wiring convention.
+
+> **GND reference:** RS485 is differential — A+B alone is sufficient when both ends share a close ground potential (same enclosure, same power rail). Add a GND wire between the MAX3485 A/B-side GND and the **PE** terminal on the Waveshare RS485 block if communication is unreliable across separate power sources or long cable runs. Do not use DGND — the Waveshare RS485 bus is isolated from the board's digital ground.
+
+> **Bus contention:** if VCC of the MAX3485 droops below 3V, the EN pin is likely floating. Ensure EN is firmly tied to D2 (not left unconnected) — a floating EN enables both TX and RX simultaneously and causes a current short on the bus.
 
 ### Opto input convention
 
@@ -44,6 +56,17 @@ Use **COM + NC** contacts if the machine expects a break signal (circuit normall
 
 ---
 
+## Photon 2 firmware
+
+Flash `firmware/photon2/` to the Photon 2:
+
+```bash
+particle compile p2 firmware/photon2 --saveTo firmware/photon2/photon2.bin
+particle flash --usb firmware/photon2/photon2.bin
+```
+
+---
+
 ## Installation
 
 ```bash
@@ -63,17 +86,9 @@ sudo usermod -aG dialout $USER
 newgrp dialout
 ```
 
-Find your dongle's port:
-
-```bash
-ls /dev/ttyUSB* /dev/ttyACM*
-# or:
-dmesg | tail -20
-```
-
 ---
 
-## Flashing the firmware
+## Flashing the ESP32 firmware
 
 The module must run the modified firmware included in `firmware/MAIN_ALL/` before the control tool will work. The modifications are:
 
@@ -106,14 +121,7 @@ source venv/bin/activate
 ./flash.sh --address 1 --port /dev/ttyACM0
 ```
 
-After flashing:
-1. **Disconnect** the USB cable from the module
-2. **Connect** the module to the RS485 bus via the dongle
-3. Test:
-
-```bash
-python3 esp32_control.py --port /dev/ttyUSB0 status
-```
+After flashing, disconnect the USB cable and connect the module to the RS485 bus.
 
 ---
 
@@ -121,26 +129,28 @@ python3 esp32_control.py --port /dev/ttyUSB0 status
 
 ```bash
 source venv/bin/activate
+export PARTICLE_TOKEN=your_token_here
 
 # One-shot status of all digital inputs, device 1
-python3 esp32_control.py --port /dev/ttyUSB0 status
+python3 esp32_control.py --photon YOUR_DEVICE_ID status
 
 # Pulse relay 1 on device 1 for 100 ms (default)
-python3 esp32_control.py --port /dev/ttyUSB0 relay --channel 1
+python3 esp32_control.py --photon YOUR_DEVICE_ID relay --channel 1
 
 # Pulse relay 1 on device 2 for 500 ms
-python3 esp32_control.py --port /dev/ttyUSB0 relay --device 2 --channel 1 --duration 500
+python3 esp32_control.py --photon YOUR_DEVICE_ID relay --device 2 --channel 1 --duration 500
 
 # Continuous polling of both devices, refreshed every 500 ms
-python3 esp32_control.py --port /dev/ttyUSB0 poll --device 1 2
+python3 esp32_control.py --photon YOUR_DEVICE_ID poll --device 1 2
 ```
 
 ### Global options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--port PATH` | `/dev/ttyUSB0` | Serial device |
-| `--baudrate N` | `9600` | Baud rate |
+| `--photon DEVICE_ID` | — | Use Particle Cloud transport (production) |
+| `--port PATH` | `/dev/ttyUSB0` | Use USB dongle transport (development) |
+| `--baudrate N` | `9600` | Baud rate (USB dongle only) |
 
 ### `relay` — activate a relay
 
@@ -207,7 +217,7 @@ Adjust `MACHINE_DI` in `esp32_control.py` to match your physical wiring.
 
 ## Multi-device RS485 bus
 
-Up to 3 modules can share the same RS485 bus. Each must be flashed with a unique address using `--address N`. Flash each module one at a time via USB, then connect all to the bus via the RS485 dongle:
+Up to 3 modules can share the same RS485 bus. Each must be flashed with a unique address using `--address N`. Flash each module one at a time via USB, then connect all to the bus:
 
 ```bash
 # Flash each module individually (with BOOT button procedure each time)
@@ -215,63 +225,31 @@ Up to 3 modules can share the same RS485 bus. Each must be flashed with a unique
 ./flash.sh --address 2
 ./flash.sh --address 3
 
-# Then poll all from the RS485 dongle
-python3 esp32_control.py --port /dev/ttyUSB0 poll --device 1 2 3
+# Then poll all via Particle Cloud
+python3 esp32_control.py --photon YOUR_DEVICE_ID poll --device 1 2 3
 ```
 
 ---
 
-## FTDI dongle note
+## USB dongle (development / debug only)
 
-FTDI FT232R dongles send RTS/CTS flowcontrol URBs by default, which causes a USB disconnect (errno 5) after the first RS485 write. The script disables RTS/CTS and DTR/DSR on open and explicitly clears both lines to prevent this.
+A USB-to-RS485 dongle can be used during development or to sniff bus traffic. It appears as `/dev/ttyUSB0` on Linux.
 
----
-
-## Particle Photon 2 + MAX3485 transport (Wi-Fi bridge)
-
-The `_ParticleTransport` in `esp32_control.py` replaces the USB dongle with a Particle Photon 2 + MAX3485 breakout, giving Wi-Fi access to the RS485 bus via Particle Cloud.
-
-### Firmware
-
-Flash `firmware/photon2/` to the Photon 2:
+```
+Dongle A+ → Module RS485 A+
+Dongle B- → Module RS485 B-
+```
 
 ```bash
-particle compile p2 firmware/photon2 --saveTo firmware/photon2/photon2.bin
-particle flash --usb firmware/photon2/photon2.bin
+python3 esp32_control.py --port /dev/ttyUSB0 status
 ```
 
-### Wiring
-
-```
-Photon 2 pin    MAX3485 breakout    Notes
-────────────    ────────────────    ─────────────────────────────────
-TX              RX                  ← breakout RX = DI (driver input)
-RX              TX                  ← breakout TX = RO (receiver output)
-D2              EN                  HIGH=transmit, LOW=receive
-3V3             VCC
-GND             GND (VCC side)
-                A  ─────────────── Waveshare RS485 A
-                B  ─────────────── Waveshare RS485 B
-                GND (A/B side) ─── Waveshare PE terminal
-```
-
-> **MAX3485 breakout TX/RX labeling:** these generic AliExpress breakouts label pins from the **chip's** perspective, not the MCU's. `RX` on the breakout is the Driver Input (DI) — connect it to MCU TX. `TX` is the Receiver Output (RO) — connect it to MCU RX. This is the opposite of standard UART cross-wiring convention.
-
-> **RS485 GND reference:** connect the A/B-side GND of the MAX3485 breakout to the **PE** pin on the Waveshare RS485 terminal block (the third pin alongside A and B), not to DGND. The Waveshare RS485 bus is isolated from the board's digital ground.
-
-> **Bus contention:** if VCC of the MAX3485 droops below 3V, the EN pin of the receive-side module is likely floating. Ensure it is firmly connected to GND — a floating EN enables both drivers simultaneously and causes a current short.
-
-### Usage via Particle Cloud
+Find your dongle's port:
 
 ```bash
-export PARTICLE_TOKEN=your_token_here
-
-# Pulse relay 1 on device 1 for 500 ms
-python3 esp32_control.py --photon YOUR_DEVICE_ID relay --channel 1 --duration 500
-
-# One-shot DI status
-python3 esp32_control.py --photon YOUR_DEVICE_ID status
-
-# Continuous polling
-python3 esp32_control.py --photon YOUR_DEVICE_ID poll --device 1 2
+ls /dev/ttyUSB* /dev/ttyACM*
+# or:
+dmesg | tail -20
 ```
+
+> **FTDI note:** FTDI FT232R dongles send RTS/CTS flowcontrol URBs by default, which causes a USB disconnect (errno 5) after the first RS485 write. The script disables RTS/CTS and DTR/DSR on open and explicitly clears both lines to prevent this.
