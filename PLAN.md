@@ -7,7 +7,7 @@
 - **Python CLI** — `relay`, `status`, `poll` commands; transport abstraction (`_SerialTransport` / `_ParticleTransport`)
 - **Particle Photon 2 + MAX3485** — `photon2_rs485.cpp` firmware with Cloud functions `relay` and `queryDI`
 - **RS485 bus working** — relay on device 1 and device 2 activated via Particle Cloud
-- **DE switching restored** — proper TX/RX half-duplex switching; `queryDI` verified working
+- **DE switching restored** — proper TX/RX half-duplex switching; `queryDI` verified working (bitmask 0xFE confirmed: DI1=0 grounded, DI2-DI8=1 floating)
 - **Explicit ON/OFF relay commands** — replaced toggle (0x55) with explicit ON (0xFF) / OFF (0x00) per channel; CRC-16 Modbus computed; ESP32 firmware updated on both devices
 - **Documentation** — README updated, TX/RX labeling finding saved in memory and repo
 
