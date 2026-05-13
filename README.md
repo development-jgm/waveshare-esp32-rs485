@@ -212,3 +212,54 @@ python3 esp32_control.py --port /dev/ttyUSB0 poll --device 1 2 3
 ## FTDI dongle note
 
 FTDI FT232R dongles send RTS/CTS flowcontrol URBs by default, which causes a USB disconnect (errno 5) after the first RS485 write. The script disables RTS/CTS and DTR/DSR on open and explicitly clears both lines to prevent this.
+
+---
+
+## Particle Photon 2 + MAX3485 transport (Wi-Fi bridge)
+
+The `_ParticleTransport` in `esp32_control.py` replaces the USB dongle with a Particle Photon 2 + MAX3485 breakout, giving Wi-Fi access to the RS485 bus via Particle Cloud.
+
+### Firmware
+
+Flash `firmware/photon2/` to the Photon 2:
+
+```bash
+particle compile p2 firmware/photon2 --saveTo firmware/photon2/photon2.bin
+particle flash --usb firmware/photon2/photon2.bin
+```
+
+### Wiring
+
+```
+Photon 2 pin    MAX3485 breakout    Notes
+────────────    ────────────────    ─────────────────────────────────
+TX              RX                  ← breakout RX = DI (driver input)
+RX              TX                  ← breakout TX = RO (receiver output)
+D2              EN                  HIGH=transmit, LOW=receive
+3V3             VCC
+GND             GND (VCC side)
+                A  ─────────────── Waveshare RS485 A
+                B  ─────────────── Waveshare RS485 B
+                GND (A/B side) ─── Waveshare PE terminal
+```
+
+> **MAX3485 breakout TX/RX labeling:** these generic AliExpress breakouts label pins from the **chip's** perspective, not the MCU's. `RX` on the breakout is the Driver Input (DI) — connect it to MCU TX. `TX` is the Receiver Output (RO) — connect it to MCU RX. This is the opposite of standard UART cross-wiring convention.
+
+> **RS485 GND reference:** connect the A/B-side GND of the MAX3485 breakout to the **PE** pin on the Waveshare RS485 terminal block (the third pin alongside A and B), not to DGND. The Waveshare RS485 bus is isolated from the board's digital ground.
+
+> **Bus contention:** if VCC of the MAX3485 droops below 3V, the EN pin of the receive-side module is likely floating. Ensure it is firmly connected to GND — a floating EN enables both drivers simultaneously and causes a current short.
+
+### Usage via Particle Cloud
+
+```bash
+export PARTICLE_TOKEN=your_token_here
+
+# Pulse relay 1 on device 1 for 500 ms
+python3 esp32_control.py --photon YOUR_DEVICE_ID relay --channel 1 --duration 500
+
+# One-shot DI status
+python3 esp32_control.py --photon YOUR_DEVICE_ID status
+
+# Continuous polling
+python3 esp32_control.py --photon YOUR_DEVICE_ID poll --device 1 2
+```
