@@ -180,16 +180,28 @@ DI query response is also 9 bytes: `[DEVICE_ADDRESS, 0x06, 0x01, DI_BITMASK, 0x0
 
 ---
 
-## DI wiring map (default)
+## Per-machine wiring
+
+Each washing machine uses two DI inputs and one relay output on the ESP32 module:
+
+| Signal | DI | Opto ON means… | Wiring |
+|--------|----|----------------|--------|
+| Plugged | DI odd (1, 3, 5, 7) | Machine plugged into mains | Normally-open sensor to opto input |
+| Running | DI even (2, 4, 6, 8) | Machine in use (busy) | Normally-closed sensor to opto input — opto conducting = idle |
+| Activate | DO (relay) | — | Relay COM+NO (or COM+NC) to machine start signal |
+
+The normally-closed running sensor means: opto ON (conducting) → DI LOW → `inputs[i] = False` → machine is **idle/available**. When the machine starts, the contact opens → opto OFF → `inputs[i] = True` → machine is **running**.
+
+### DI wiring map (default)
 
 Adjust `MACHINE_DI` in `esp32_control.py` to match your physical wiring.
 
-| Machine | Plugged DI | Running DI |
-|---------|-----------|------------|
-| 1 | DI1 (index 0) | DI2 (index 1) |
-| 2 | DI3 (index 2) | DI4 (index 3) |
-| 3 | DI5 (index 4) | DI6 (index 5) |
-| 4 | DI7 (index 6) | DI8 (index 7) |
+| Machine | Plugged DI | Running DI | Relay channel |
+|---------|-----------|------------|---------------|
+| 1 | DI1 (index 0) | DI2 (index 1) | CH1 |
+| 2 | DI3 (index 2) | DI4 (index 3) | CH2 |
+| 3 | DI5 (index 4) | DI6 (index 5) | CH3 |
+| 4 | DI7 (index 6) | DI8 (index 7) | CH4 |
 
 ---
 
