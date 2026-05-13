@@ -17,10 +17,10 @@ Command-line tool to control up to 3 **Waveshare ESP32-S3-POE-ETH-8DI-8RO** modu
 ```
 Dongle A+ → Module RS485 A+
 Dongle B- → Module RS485 B-
-Dongle GND → Module DGND  (not PE — signal ground reference)
+Dongle GND → Module DGND  (optional — see note)
 ```
 
-> **Important:** Connect GND to **DGND**, not PE. Without this the RS485 signal reference is floating and communication is unreliable.
+> **GND reference:** RS485 is differential, so A+B alone is sufficient when both ends share a close ground potential (same enclosure, same power rail, short cable). Add a GND wire if communication is unreliable across separate power sources or long cable runs. If you do connect GND, use **DGND** on the Waveshare terminal block — not PE, which is chassis/shield ground.
 
 ### Opto input convention
 
