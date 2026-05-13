@@ -5,20 +5,32 @@ SYSTEM_THREAD(ENABLED);
 
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
-// ── Pins ──────────────────────────────────────────────────────────────────────
 // MAX3485 DE and RE pins tied together:  HIGH = transmit,  LOW = receive
 static const pin_t DE_RE = D2;
 
-// ── RS485 command table (mirrors esp32_control.py _CMD_TOGGLE) ────────────────
-static const uint8_t CMD_TOGGLE[8][8] = {
-    {0x06, 0x05, 0x00, 0x01, 0x55, 0x00, 0xA2, 0xED},  // CH1
-    {0x06, 0x05, 0x00, 0x02, 0x55, 0x00, 0x52, 0xED},  // CH2
-    {0x06, 0x05, 0x00, 0x03, 0x55, 0x00, 0x03, 0x2D},  // CH3
-    {0x06, 0x05, 0x00, 0x04, 0x55, 0x00, 0xB2, 0xEC},  // CH4
-    {0x06, 0x05, 0x00, 0x05, 0x55, 0x00, 0xE3, 0x2C},  // CH5
-    {0x06, 0x05, 0x00, 0x06, 0x55, 0x00, 0x13, 0x2C},  // CH6
-    {0x06, 0x05, 0x00, 0x07, 0x55, 0x00, 0x42, 0xEC},  // CH7
-    {0x06, 0x05, 0x00, 0x08, 0x55, 0x00, 0x72, 0xEF},  // CH8
+// ── RS485 command tables ──────────────────────────────────────────────────────
+// Explicit ON (0xFF) and OFF (0x00) per channel — avoids toggle state ambiguity.
+// CRC-16 Modbus computed over bytes 0-5 of the 8-byte payload.
+static const uint8_t CMD_ON[8][8] = {
+    {0x06, 0x05, 0x00, 0x01, 0xFF, 0x00, 0xDC, 0x4D},  // CH1 ON
+    {0x06, 0x05, 0x00, 0x02, 0xFF, 0x00, 0x2C, 0x4D},  // CH2 ON
+    {0x06, 0x05, 0x00, 0x03, 0xFF, 0x00, 0x7D, 0x8D},  // CH3 ON
+    {0x06, 0x05, 0x00, 0x04, 0xFF, 0x00, 0xCC, 0x4C},  // CH4 ON
+    {0x06, 0x05, 0x00, 0x05, 0xFF, 0x00, 0x9D, 0x8C},  // CH5 ON
+    {0x06, 0x05, 0x00, 0x06, 0xFF, 0x00, 0x6D, 0x8C},  // CH6 ON
+    {0x06, 0x05, 0x00, 0x07, 0xFF, 0x00, 0x3C, 0x4C},  // CH7 ON
+    {0x06, 0x05, 0x00, 0x08, 0xFF, 0x00, 0x0C, 0x4F},  // CH8 ON
+};
+
+static const uint8_t CMD_OFF[8][8] = {
+    {0x06, 0x05, 0x00, 0x01, 0x00, 0x00, 0x9D, 0xBD},  // CH1 OFF
+    {0x06, 0x05, 0x00, 0x02, 0x00, 0x00, 0x6D, 0xBD},  // CH2 OFF
+    {0x06, 0x05, 0x00, 0x03, 0x00, 0x00, 0x3C, 0x7D},  // CH3 OFF
+    {0x06, 0x05, 0x00, 0x04, 0x00, 0x00, 0x8D, 0xBC},  // CH4 OFF
+    {0x06, 0x05, 0x00, 0x05, 0x00, 0x00, 0xDC, 0x7C},  // CH5 OFF
+    {0x06, 0x05, 0x00, 0x06, 0x00, 0x00, 0x2C, 0x7C},  // CH6 OFF
+    {0x06, 0x05, 0x00, 0x07, 0x00, 0x00, 0x7D, 0xBC},  // CH7 OFF
+    {0x06, 0x05, 0x00, 0x08, 0x00, 0x00, 0x4D, 0xBF},  // CH8 OFF
 };
 
 static const uint8_t CMD_QUERY_DI[8] = {
@@ -28,20 +40,21 @@ static const uint8_t CMD_QUERY_DI[8] = {
 // ── Low-level RS485 ───────────────────────────────────────────────────────────
 
 static void rs485Send(const uint8_t *buf, size_t len) {
-    // DE/RE always HIGH (transmit) — held in setup(); no switching needed
+    digitalWrite(DE_RE, HIGH);          // switch to transmit
     Serial1.write(buf, len);
-    Serial1.flush();
-    delayMicroseconds(2000);
+    Serial1.flush();                    // block until shift register is empty
+    delayMicroseconds(2000);            // guard: ~2 byte periods at 9600 baud
+    digitalWrite(DE_RE, LOW);           // back to receive
 }
 
 // Query DI state for one device. Returns bitmask (0–255) or negative on error.
 static int queryDevice(uint8_t addr) {
-    while (Serial1.available()) Serial1.read();     // discard stale bytes
+    while (Serial1.available()) Serial1.read();  // discard stale bytes
 
     uint8_t cmd[9];
     cmd[0] = addr;
     memcpy(cmd + 1, CMD_QUERY_DI, 8);
-    rs485Send(cmd, 9);
+    rs485Send(cmd, 9);  // DE goes HIGH then LOW; receiver enabled on return
 
     uint32_t deadline = millis() + 200;
     while (Serial1.available() < 9) {
@@ -56,7 +69,7 @@ static int queryDevice(uint8_t addr) {
     Serial1.readBytes((char*)resp, 9);
 
     if (resp[0] == addr && resp[1] == 0x06 && resp[2] == 0x01) {
-        return resp[3];     // DI bitmask
+        return resp[3];  // DI bitmask
     }
     Log.warn("DI bad response (device %d): %02X %02X %02X", addr, resp[0], resp[1], resp[2]);
     return -2;
@@ -79,13 +92,15 @@ int cloudRelay(String args) {
     if (channel < 1 || channel > 8) return -1;
     if (duration < 1)                return -1;
 
-    uint8_t cmd[9];
-    cmd[0] = (uint8_t)device;
-    memcpy(cmd + 1, CMD_TOGGLE[channel - 1], 8);
+    uint8_t cmdOn[9], cmdOff[9];
+    cmdOn[0]  = (uint8_t)device;
+    cmdOff[0] = (uint8_t)device;
+    memcpy(cmdOn  + 1, CMD_ON[channel - 1],  8);
+    memcpy(cmdOff + 1, CMD_OFF[channel - 1], 8);
 
-    rs485Send(cmd, 9);          // relay ON  (toggle)
+    rs485Send(cmdOn, 9);   // relay ON  (explicit)
     delay(duration);
-    rs485Send(cmd, 9);          // relay OFF (toggle again)
+    rs485Send(cmdOff, 9);  // relay OFF (explicit)
 
     Log.info("relay device=%d ch=%d dur=%d ms OK", device, channel, duration);
     return 0;
@@ -103,7 +118,7 @@ int cloudQueryDI(String args) {
 
 void setup() {
     pinMode(DE_RE, OUTPUT);
-    digitalWrite(DE_RE, HIGH);      // DE always HIGH: driver permanently enabled
+    digitalWrite(DE_RE, LOW);       // start in receive mode
 
     Serial1.begin(9600, SERIAL_8N1);
 
