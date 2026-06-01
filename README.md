@@ -277,6 +277,79 @@ Ajustar `MACHINE_DI` en `esp32_control.py` para que coincida con el cableado fí
 | 3 | DI5 (índice 4) | DI6 (índice 5) | CH3 |
 | 4 | DI7 (índice 6) | DI8 (índice 7) | CH4 |
 
+### 8.2. Conexión de sensores al bloque de entradas digitales
+
+El Waveshare admite dos modos de entrada en el bloque DI:
+
+![Diagrama de cableado entradas digitales Waveshare](docs/waveshare_di_wiring.png)
+
+**Contacto seco (dry contact) — sensores de las lavadoras:**
+
+Los sensores de las lavadoras son contactos secos (relés o interruptores sin alimentación propia). Se conectan directamente entre el pin `DI_n` y **`DGND`**:
+
+```
+Terminal 1 del sensor → DI_n
+Terminal 2 del sensor → DGND
+```
+
+`DGND` actúa como el común compartido para todos los sensores. `COM` no se usa en modo contacto seco.
+
+**Contacto húmedo (wet contact) — sensores activos NPN:**
+
+Si el sensor tiene alimentación propia (NPN, sensor inductivo, etc.), se necesita fuente externa de 5–36V:
+
+```
+Positivo fuente externa → COM
+Salida NPN del sensor  → DI_n
+Negativo fuente externa → DGND
+```
+
+### 8.3. Sensor "enchufada" (DI impar: DI1, DI3, DI5, DI7)
+
+Sensor **normalmente abierto**: el contacto está abierto cuando la máquina no está enchufada y se cierra cuando se conecta a la corriente.
+
+```
+Opto de la máquina (salida "enchufada"):
+  Terminal A → DI1   (o DI3, DI5, DI7 según la máquina)
+  Terminal B → DGND
+
+Estado:
+  Máquina enchufada  → contacto cerrado → DI LOW → inputs[n] = False → plugged = True
+  Máquina desenchufada → contacto abierto → DI HIGH → inputs[n] = True  → plugged = False
+```
+
+### 8.4. Sensor "en uso / libre" (DI par: DI2, DI4, DI6, DI8)
+
+Sensor **normalmente cerrado**: el contacto está cerrado cuando la máquina está en reposo (libre) y se abre cuando arranca.
+
+```
+Opto de la máquina (salida "en uso"):
+  Terminal A → DI2   (o DI4, DI6, DI8 según la máquina)
+  Terminal B → DGND
+
+Estado:
+  Máquina libre → contacto cerrado → DI LOW → inputs[n] = False → running = False → disponible
+  Máquina en uso → contacto abierto → DI HIGH → inputs[n] = True  → running = True  → ocupada
+```
+
+### 8.5. Conexión del relé de activación
+
+El relé del Waveshare tiene tres terminales: **COM**, **NO** (normalmente abierto) y **NC** (normalmente cerrado).
+
+```
+Señal de arranque de la máquina (normalmente abierta):
+  COM → un terminal de la señal de arranque
+  NO  → otro terminal de la señal de arranque
+  (el relé cierra el circuito durante el pulso)
+
+Señal de arranque de la máquina (normalmente cerrada):
+  COM → un terminal de la señal de arranque
+  NC  → otro terminal de la señal de arranque
+  (el relé abre el circuito durante el pulso)
+```
+
+El pulso se configura con el parámetro `duration_ms` del comando `relay`. Por defecto 100 ms.
+
 ---
 
 ## 9. Bus RS485 multidispositivo
