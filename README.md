@@ -65,6 +65,45 @@ particle compile p2 firmware/photon2 --saveTo firmware/photon2/photon2.bin
 particle flash --usb firmware/photon2/photon2.bin
 ```
 
+### Particle Cloud functions
+
+#### `relay` — activar un relé
+
+Argumento: `"device,channel[,duration_ms]"`
+
+| Campo | Valores | Descripción |
+|-------|---------|-------------|
+| `device` | 1–3 | Dirección del módulo Waveshare en el bus |
+| `channel` | 1–8 | Canal del relé |
+| `duration_ms` | entero (opcional) | Duración del pulso en ms — por defecto 100 |
+
+Ejemplos:
+```
+"1,1"       → relay CH1 device 1, 100 ms
+"1,3,500"   → relay CH3 device 1, 500 ms
+"2,1,1000"  → relay CH1 device 2, 1000 ms
+```
+
+Retorna `0` en éxito, negativo en error.
+
+#### `queryDI` — leer entradas digitales
+
+Argumento: `"device"` (1–3)
+
+Retorna un entero 0–255: bitmask de las 8 entradas digitales del módulo indicado.
+
+| Bit | DI | Valor 1 | Valor 0 |
+|-----|----|---------|---------|
+| 0 | DI1 | Opto OFF (pin HIGH/pullup) | Opto ON (pin LOW) |
+| … | … | … | … |
+| 7 | DI8 | Opto OFF (pin HIGH/pullup) | Opto ON (pin LOW) |
+
+Ejemplos de interpretación:
+- `255` (`0b11111111`) → todas las DI en HIGH → ningún optoacoplador activo → ninguna máquina enchufada ni en uso
+- `254` (`0b11111110`) → DI1=0 (opto activo), DI2–DI8=1 (flotantes) → máquina 1 enchufada, sensor running libre
+
+Retorna `-1` si el dispositivo no responde en 200 ms.
+
 ---
 
 ## Installation
