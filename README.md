@@ -190,7 +190,7 @@ python3 esp32_control.py --photon TU_DEVICE_ID relay --device 2 --channel 1 --du
 python3 esp32_control.py --photon TU_DEVICE_ID poll --device 1 2
 ```
 
-### Opciones globales
+#### Opciones globales
 
 | Opción | Por defecto | Descripción |
 |--------|-------------|-------------|
@@ -198,7 +198,7 @@ python3 esp32_control.py --photon TU_DEVICE_ID poll --device 1 2
 | `--port PATH` | `/dev/ttyUSB0` | Transporte dongle USB (desarrollo) |
 | `--baudrate N` | `9600` | Velocidad en baudios (solo dongle USB) |
 
-### `relay` — activar un relé
+#### `relay` — activar un relé
 
 ```
 python3 esp32_control.py relay --channel N [--duration MS] [--device N]
@@ -210,7 +210,7 @@ python3 esp32_control.py relay --channel N [--duration MS] [--device N]
 | `--duration MS` | `100` | Duración del pulso en milisegundos |
 | `--device N` | `1` | Dirección del dispositivo (1–3) |
 
-### `status` — lectura puntual de DI
+#### `status` — lectura puntual de DI
 
 ```
 python3 esp32_control.py status [--device N [N ...]]
@@ -218,7 +218,7 @@ python3 esp32_control.py status [--device N [N ...]]
 
 Muestra los valores brutos de DI y el estado decodificado de cada máquina.
 
-### `poll` — monitorización continua
+#### `poll` — monitorización continua
 
 ```
 python3 esp32_control.py poll [--device N [N ...]] [--interval SEC]
