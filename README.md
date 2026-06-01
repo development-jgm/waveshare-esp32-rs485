@@ -1,71 +1,71 @@
-# Waveshare ESP32 RS485 Control Tool
+# Waveshare ESP32 RS485 — Herramienta de control
 
-Command-line tool to control up to 3 **Waveshare ESP32-S3-POE-ETH-8DI-8RO** modules over a shared RS485 bus. Supports per-device relay activation with configurable pulse duration and continuous digital input polling.
+Herramienta de línea de comandos para controlar hasta 3 módulos **Waveshare ESP32-S3-POE-ETH-8DI-8RO** sobre un bus RS485 compartido. Soporta activación de relés por dispositivo con duración de pulso configurable y monitorización continua de entradas digitales.
 
 ## Hardware
 
-| Component | Detail |
+| Componente | Detalle |
 |-----------|--------|
-| Module | Waveshare ESP32-S3-POE-ETH-8DI-8RO |
-| Interface | RS485 (9600 baud 8N1) |
-| RS485 bridge | Particle Photon 2 + MAX3485 breakout (Wi-Fi → RS485) |
-| Relays | 8× (10A 250VAC) — NO/COM/NC contacts |
-| Inputs | 8× optically isolated digital inputs (INPUT_PULLUP) |
+| Módulo | Waveshare ESP32-S3-POE-ETH-8DI-8RO |
+| Interfaz | RS485 (9600 baud 8N1) |
+| Puente RS485 | Particle Photon 2 + breakout MAX3485 (Wi-Fi → RS485) |
+| Relés | 8× (10A 250VAC) — contactos NO/COM/NC |
+| Entradas | 8× entradas digitales optoacopladas (INPUT_PULLUP) |
 
-## Wiring
+## Cableado
 
-### Particle Photon 2 + MAX3485 (production RS485 bridge)
+### Particle Photon 2 + MAX3485 (puente RS485 de producción)
 
 ```
-Photon 2 pin    MAX3485 breakout    Notes
+Pin Photon 2    Breakout MAX3485    Notas
 ────────────    ────────────────    ─────────────────────────────────
-TX              RX                  ← breakout RX = DI (driver input)
-RX              TX                  ← breakout TX = RO (receiver output)
-D2              EN                  HIGH=transmit, LOW=receive
+TX              RX                  ← RX del breakout = DI (entrada driver)
+RX              TX                  ← TX del breakout = RO (salida receptor)
+D2              EN                  HIGH=transmitir, LOW=recibir
 3V3             VCC
-GND             GND (VCC side)
+GND             GND (lado VCC)
                 A  ─────────────── Waveshare RS485 A
                 B  ─────────────── Waveshare RS485 B
 ```
 
-> **MAX3485 breakout TX/RX labeling:** these generic AliExpress breakouts label pins from the **chip's** perspective, not the MCU's. `RX` on the breakout is the Driver Input (DI) — connect it to MCU TX. `TX` is the Receiver Output (RO) — connect it to MCU RX. This is the opposite of standard UART cross-wiring convention.
+> **Etiquetado TX/RX del breakout MAX3485:** estos breakouts genéricos de AliExpress etiquetan los pines desde la perspectiva del **chip**, no del MCU. `RX` en el breakout es la entrada del driver (DI) — conectar al TX del MCU. `TX` es la salida del receptor (RO) — conectar al RX del MCU. Es lo contrario de la convención habitual de cruce UART.
 
-> **GND reference:** RS485 is differential — A+B alone is sufficient when both ends share a close ground potential (same enclosure, same power rail). Add a GND wire between the MAX3485 A/B-side GND and the **PE** terminal on the Waveshare RS485 block if communication is unreliable across separate power sources or long cable runs. Do not use DGND — the Waveshare RS485 bus is isolated from the board's digital ground.
+> **Referencia GND:** RS485 es diferencial — A+B solos son suficientes cuando ambos extremos comparten un potencial de tierra cercano (mismo rack, misma fuente). Añadir un hilo GND entre el GND del lado A/B del MAX3485 y el terminal **PE** del bloque RS485 del Waveshare si la comunicación es inestable con fuentes separadas o cables largos. No usar DGND — el bus RS485 del Waveshare está aislado de la tierra digital de la placa.
 
-> **Bus contention:** if VCC of the MAX3485 droops below 3V, the EN pin is likely floating. Ensure EN is firmly tied to D2 (not left unconnected) — a floating EN enables both TX and RX simultaneously and causes a current short on the bus.
+> **Contención de bus:** si VCC del MAX3485 cae por debajo de 3V, el pin EN probablemente está flotando. Asegurarse de que EN está firmemente conectado a D2 — un EN flotante activa TX y RX simultáneamente y provoca un cortocircuito en el bus.
 
-### Opto input convention
+### Convención de entradas digitales (opto)
 
-The module uses `INPUT_PULLUP`. The optocouplers pull the pin low when active:
+El módulo usa `INPUT_PULLUP`. Los optoacopladores llevan el pin a LOW cuando conducen:
 
-| Opto state | DI pin | `inputs[i]` value |
-|------------|--------|-------------------|
-| ON (conducting) | LOW | `False` |
+| Estado opto | Pin DI | Valor en código |
+|-------------|--------|-----------------|
+| ON (conduciendo) | LOW | `False` |
 | OFF | HIGH (pullup) | `True` |
 
-The script decodes two signals per machine:
+El script decodifica dos señales por máquina:
 
 ```
-plugged = not inputs[plugged_di]          # opto ON = plugged to mains
-running = plugged and inputs[running_di]  # running opto ON = idle (normally-closed)
+plugged = not inputs[plugged_di]          # opto ON = enchufada a la corriente
+running = plugged and inputs[running_di]  # normalmente cerrado: opto ON = libre
 ```
 
-### Relay wiring
+### Cableado de relés
 
-Use **COM + NC** contacts if the machine expects a break signal (circuit normally closed, opened on activation). Use **COM + NO** for normally-open activation. Test with the `relay` command.
+Usar contactos **COM + NC** si la máquina espera una señal de ruptura (circuito normalmente cerrado, se abre al activar). Usar **COM + NO** para activación normalmente abierta. Probar con el comando `relay`.
 
 ---
 
-## Photon 2 firmware
+## Firmware Photon 2
 
-Flash `firmware/photon2/` to the Photon 2:
+Flashear `firmware/photon2/` al Photon 2:
 
 ```bash
 particle compile p2 firmware/photon2 --saveTo firmware/photon2/photon2.bin
 particle flash --usb firmware/photon2/photon2.bin
 ```
 
-### Particle Cloud functions
+### Funciones Particle Cloud
 
 #### `relay` — activar un relé
 
@@ -106,7 +106,7 @@ Retorna `-1` si el dispositivo no responde en 200 ms.
 
 ---
 
-## Installation
+## Instalación
 
 ```bash
 git clone https://github.com/development-jgm/waveshare-esp32-rs485.git
@@ -117,178 +117,178 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Serial port permissions (Linux)
+### Permisos de puerto serie (Linux)
 
 ```bash
 sudo usermod -aG dialout $USER
-# Log out and back in, or apply immediately:
+# Cerrar sesión y volver a entrar, o aplicar inmediatamente:
 newgrp dialout
 ```
 
 ---
 
-## Flashing the ESP32 firmware
+## Flasheo del firmware ESP32
 
-The module must run the modified firmware included in `firmware/MAIN_ALL/` before the control tool will work. The modifications are:
+El módulo debe ejecutar el firmware modificado incluido en `firmware/MAIN_ALL/` antes de que la herramienta funcione. Las modificaciones son:
 
-- **`WS_RS485.cpp`** — implements the 9-byte addressed protocol and adds a DI query command that responds with the 8 digital input states as a bitmask
-- **`WS_DIN.h`** — `Relay_Immediate_Default = 0` disables DI→relay auto-mirroring (prevents relays firing when a machine is plugged in)
+- **`WS_RS485.cpp`** — implementa el protocolo de 9 bytes con dirección y añade el comando de consulta DI que responde con el estado de las 8 entradas digitales como bitmask
+- **`WS_DIN.h`** — `Relay_Immediate_Default = 0` desactiva el auto-mirroring DI→relé (evita que los relés se activen al enchufar una máquina)
 
-### Entering bootloader mode (required before every flash)
+### Entrar en modo bootloader (obligatorio antes de cada flash)
 
-The ESP32-S3 USB JTAG interface does not support automatic reset into download mode. You must put the module into bootloader mode manually each time:
+El interfaz USB JTAG del ESP32-S3 no soporta reset automático a modo de descarga. Hay que poner el módulo en modo bootloader manualmente cada vez:
 
-1. **Disconnect** the USB cable from the module
-2. **Hold** the **BOOT** button
-3. **Connect** the USB cable while holding BOOT
-4. **Release** BOOT
+1. **Desconectar** el cable USB del módulo
+2. **Mantener** pulsado el botón **BOOT**
+3. **Conectar** el cable USB mientras se mantiene BOOT
+4. **Soltar** BOOT
 
-The module will stay in ROM bootloader mode (stable USB connection) until flashed and reset.
+El módulo permanecerá en modo bootloader ROM (conexión USB estable) hasta que sea flasheado y reseteado.
 
-### Flash steps
+### Pasos para flashear
 
 ```bash
 source venv/bin/activate
 
-# Flash as device 1 (port auto-detected)
+# Flashear como device 1 (puerto autodetectado)
 ./flash.sh --address 1
 
-# Flash as device 2
+# Flashear como device 2
 ./flash.sh --address 2
 
-# Explicit port
+# Puerto explícito
 ./flash.sh --address 1 --port /dev/ttyACM0
 ```
 
-After flashing, disconnect the USB cable and connect the module to the RS485 bus.
+Tras flashear, desconectar el cable USB y conectar el módulo al bus RS485.
 
 ---
 
-## Usage
+## Uso
 
 ```bash
 source venv/bin/activate
-export PARTICLE_TOKEN=your_token_here
+export PARTICLE_TOKEN=tu_token_aqui
 
-# One-shot status of all digital inputs, device 1
-python3 esp32_control.py --photon YOUR_DEVICE_ID status
+# Estado de todas las entradas digitales, device 1
+python3 esp32_control.py --photon TU_DEVICE_ID status
 
-# Pulse relay 1 on device 1 for 100 ms (default)
-python3 esp32_control.py --photon YOUR_DEVICE_ID relay --channel 1
+# Pulso en relé 1 del device 1 durante 100 ms (por defecto)
+python3 esp32_control.py --photon TU_DEVICE_ID relay --channel 1
 
-# Pulse relay 1 on device 2 for 500 ms
-python3 esp32_control.py --photon YOUR_DEVICE_ID relay --device 2 --channel 1 --duration 500
+# Pulso en relé 1 del device 2 durante 500 ms
+python3 esp32_control.py --photon TU_DEVICE_ID relay --device 2 --channel 1 --duration 500
 
-# Continuous polling of both devices, refreshed every 500 ms
-python3 esp32_control.py --photon YOUR_DEVICE_ID poll --device 1 2
+# Monitorización continua de ambos dispositivos, refresco cada 500 ms
+python3 esp32_control.py --photon TU_DEVICE_ID poll --device 1 2
 ```
 
-### Global options
+### Opciones globales
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--photon DEVICE_ID` | — | Use Particle Cloud transport (production) |
-| `--port PATH` | `/dev/ttyUSB0` | Use USB dongle transport (development) |
-| `--baudrate N` | `9600` | Baud rate (USB dongle only) |
+| Opción | Por defecto | Descripción |
+|--------|-------------|-------------|
+| `--photon DEVICE_ID` | — | Transporte Particle Cloud (producción) |
+| `--port PATH` | `/dev/ttyUSB0` | Transporte dongle USB (desarrollo) |
+| `--baudrate N` | `9600` | Velocidad en baudios (solo dongle USB) |
 
-### `relay` — activate a relay
+### `relay` — activar un relé
 
 ```
 python3 esp32_control.py relay --channel N [--duration MS] [--device N]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--channel N` | *(required)* | Relay channel 1–8 |
-| `--duration MS` | `100` | Pulse duration in milliseconds |
-| `--device N` | `1` | Device address (1–3) |
+| Opción | Por defecto | Descripción |
+|--------|-------------|-------------|
+| `--channel N` | *(obligatorio)* | Canal del relé 1–8 |
+| `--duration MS` | `100` | Duración del pulso en milisegundos |
+| `--device N` | `1` | Dirección del dispositivo (1–3) |
 
-### `status` — one-shot DI read
+### `status` — lectura puntual de DI
 
 ```
 python3 esp32_control.py status [--device N [N ...]]
 ```
 
-Prints raw DI values and decoded machine states for each device.
+Muestra los valores brutos de DI y el estado decodificado de cada máquina.
 
-### `poll` — continuous monitoring
+### `poll` — monitorización continua
 
 ```
 python3 esp32_control.py poll [--device N [N ...]] [--interval SEC]
 ```
 
-Refreshes the terminal in place. Press `Ctrl+C` to stop.
+Refresca el terminal en el sitio. Pulsar `Ctrl+C` para detener.
 
 ---
 
-## RS485 protocol
+## Protocolo RS485
 
-Commands are **9 bytes**: `[DEVICE_ADDRESS] + [8-byte payload]`. Each module silently discards packets not addressed to it, so all devices can share the same bus without collisions.
+Los comandos son **9 bytes**: `[DEVICE_ADDRESS] + [payload de 8 bytes]`. Cada módulo descarta silenciosamente los paquetes que no van dirigidos a él, por lo que todos los dispositivos pueden compartir el mismo bus sin colisiones.
 
-DI query response is also 9 bytes: `[DEVICE_ADDRESS, 0x06, 0x01, DI_BITMASK, 0x00, 0x00, 0x00, 0x00, 0x00]`.
-
----
-
-## Per-machine wiring
-
-Each washing machine uses two DI inputs and one relay output on the ESP32 module:
-
-| Signal | DI | Opto ON means… | Wiring |
-|--------|----|----------------|--------|
-| Plugged | DI odd (1, 3, 5, 7) | Machine plugged into mains | Normally-open sensor to opto input |
-| Running | DI even (2, 4, 6, 8) | Machine in use (busy) | Normally-closed sensor to opto input — opto conducting = idle |
-| Activate | DO (relay) | — | Relay COM+NO (or COM+NC) to machine start signal |
-
-The normally-closed running sensor means: opto ON (conducting) → DI LOW → `inputs[i] = False` → machine is **idle/available**. When the machine starts, the contact opens → opto OFF → `inputs[i] = True` → machine is **running**.
-
-### DI wiring map (default)
-
-Adjust `MACHINE_DI` in `esp32_control.py` to match your physical wiring.
-
-| Machine | Plugged DI | Running DI | Relay channel |
-|---------|-----------|------------|---------------|
-| 1 | DI1 (index 0) | DI2 (index 1) | CH1 |
-| 2 | DI3 (index 2) | DI4 (index 3) | CH2 |
-| 3 | DI5 (index 4) | DI6 (index 5) | CH3 |
-| 4 | DI7 (index 6) | DI8 (index 7) | CH4 |
+La respuesta al query DI también es de 9 bytes: `[DEVICE_ADDRESS, 0x06, 0x01, DI_BITMASK, 0x00, 0x00, 0x00, 0x00, 0x00]`.
 
 ---
 
-## Multi-device RS485 bus
+## Cableado por máquina
 
-Up to 3 modules can share the same RS485 bus. Each must be flashed with a unique address using `--address N`. Flash each module one at a time via USB, then connect all to the bus:
+Cada lavadora usa dos entradas DI y una salida de relé del módulo ESP32:
+
+| Señal | DI | Opto ON significa | Cableado |
+|-------|----|-------------------|----------|
+| Enchufada | DI impar (1, 3, 5, 7) | Máquina conectada a la corriente | Sensor normalmente abierto a entrada opto |
+| En uso | DI par (2, 4, 6, 8) | Máquina ocupada | Sensor normalmente cerrado a entrada opto — opto conduciendo = libre |
+| Activar | DO (relé) | — | Relé COM+NO (o COM+NC) a señal de arranque de la máquina |
+
+El sensor "en uso" normalmente cerrado significa: opto ON (conduciendo) → DI LOW → `inputs[i] = False` → máquina **disponible**. Cuando la máquina arranca, el contacto se abre → opto OFF → `inputs[i] = True` → máquina **en uso**.
+
+### Mapa de cableado DI (por defecto)
+
+Ajustar `MACHINE_DI` en `esp32_control.py` para que coincida con el cableado físico.
+
+| Máquina | DI Enchufada | DI En uso | Canal relé |
+|---------|-------------|-----------|------------|
+| 1 | DI1 (índice 0) | DI2 (índice 1) | CH1 |
+| 2 | DI3 (índice 2) | DI4 (índice 3) | CH2 |
+| 3 | DI5 (índice 4) | DI6 (índice 5) | CH3 |
+| 4 | DI7 (índice 6) | DI8 (índice 7) | CH4 |
+
+---
+
+## Bus RS485 multidispositivo
+
+Hasta 3 módulos pueden compartir el mismo bus RS485. Cada uno debe flashearse con una dirección única usando `--address N`. Flashear cada módulo individualmente por USB y luego conectar todos al bus:
 
 ```bash
-# Flash each module individually (with BOOT button procedure each time)
+# Flashear cada módulo individualmente (con el procedimiento del botón BOOT cada vez)
 ./flash.sh --address 1
 ./flash.sh --address 2
 ./flash.sh --address 3
 
-# Then poll all via Particle Cloud
-python3 esp32_control.py --photon YOUR_DEVICE_ID poll --device 1 2 3
+# Luego monitorizar todos via Particle Cloud
+python3 esp32_control.py --photon TU_DEVICE_ID poll --device 1 2 3
 ```
 
 ---
 
-## USB dongle (development / debug only)
+## Dongle USB (solo desarrollo / debug)
 
-A USB-to-RS485 dongle can be used during development or to sniff bus traffic. It appears as `/dev/ttyUSB0` on Linux.
+Se puede usar un dongle USB-RS485 durante el desarrollo o para inspeccionar el tráfico del bus. Aparece como `/dev/ttyUSB0` en Linux.
 
 ```
-Dongle A+ → Module RS485 A+
-Dongle B- → Module RS485 B-
+Dongle A+ → Módulo RS485 A+
+Dongle B- → Módulo RS485 B-
 ```
 
 ```bash
 python3 esp32_control.py --port /dev/ttyUSB0 status
 ```
 
-Find your dongle's port:
+Encontrar el puerto del dongle:
 
 ```bash
 ls /dev/ttyUSB* /dev/ttyACM*
-# or:
+# o:
 dmesg | tail -20
 ```
 
-> **FTDI note:** FTDI FT232R dongles send RTS/CTS flowcontrol URBs by default, which causes a USB disconnect (errno 5) after the first RS485 write. The script disables RTS/CTS and DTR/DSR on open and explicitly clears both lines to prevent this.
+> **Nota FTDI:** los dongles FTDI FT232R envían URBs de control de flujo RTS/CTS por defecto, lo que provoca una desconexión USB (errno 5) tras la primera escritura RS485. El script desactiva RTS/CTS y DTR/DSR al abrir y limpia explícitamente ambas líneas para evitarlo.
