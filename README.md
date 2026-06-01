@@ -301,7 +301,6 @@ Si el sensor tiene alimentación propia (NPN, sensor inductivo, etc.), se necesi
 ```
 Positivo fuente externa → COM
 Salida NPN del sensor  → DI_n
-Negativo fuente externa → DGND
 ```
 
 ### 8.3. Sensor "enchufada" (DI impar: DI1, DI3, DI5, DI7)
