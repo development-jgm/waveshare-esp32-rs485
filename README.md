@@ -166,6 +166,13 @@ Tras flashear, desconectar el cable USB y conectar el módulo al bus RS485.
 
 ## Uso
 
+Hay dos formas de interactuar con el sistema:
+
+- **Con script (Python)** — mayor control: permite monitorización continua, lectura de múltiples dispositivos y automatización. Requiere tener el entorno configurado y un token de Particle.
+- **Sin script (Particle Console)** — forma rápida de probar o activar funciones manualmente desde el navegador, sin instalar nada.
+
+### Con script
+
 ```bash
 source venv/bin/activate
 export PARTICLE_TOKEN=tu_token_aqui
@@ -219,7 +226,7 @@ python3 esp32_control.py poll [--device N [N ...]] [--interval SEC]
 
 Refresca el terminal en el sitio. Pulsar `Ctrl+C` para detener.
 
-### Particle Console (sin script)
+### Sin script (Particle Console)
 
 Las funciones también se pueden llamar directamente desde la página del dispositivo en [console.particle.io](https://console.particle.io): seleccionar el dispositivo → panel derecho → sección **Functions**.
 
