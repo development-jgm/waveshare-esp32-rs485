@@ -335,17 +335,14 @@ Estado:
 
 El relé del Waveshare tiene tres terminales: **COM**, **NO** (normalmente abierto) y **NC** (normalmente cerrado).
 
-```
-Señal de arranque de la máquina (normalmente abierta):
-  COM → un terminal de la señal de arranque
-  NO  → otro terminal de la señal de arranque
-  (el relé cierra el circuito durante el pulso)
+La máquina se activa **abriendo** el circuito momentáneamente → usar contactos **COM + NC**:
 
-Señal de arranque de la máquina (normalmente cerrada):
-  COM → un terminal de la señal de arranque
-  NC  → otro terminal de la señal de arranque
-  (el relé abre el circuito durante el pulso)
 ```
+COM → un terminal de la señal de arranque
+NC  → otro terminal de la señal de arranque
+```
+
+En reposo el circuito está cerrado (COM–NC conduciendo). Al activar el relé se abre durante el pulso, lo que dispara la máquina.
 
 El pulso se configura con el parámetro `duration_ms` del comando `relay`. Por defecto 100 ms.
 
