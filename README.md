@@ -219,6 +219,17 @@ python3 esp32_control.py poll [--device N [N ...]] [--interval SEC]
 
 Refresca el terminal en el sitio. Pulsar `Ctrl+C` para detener.
 
+### Particle Console (sin script)
+
+Las funciones también se pueden llamar directamente desde la página del dispositivo en [console.particle.io](https://console.particle.io): seleccionar el dispositivo → panel derecho → sección **Functions**.
+
+| Función | Argumento de ejemplo | Efecto |
+|---------|----------------------|--------|
+| `relay` | `1,1,500` | Pulso de 500 ms en relé CH1 del device 1 |
+| `relay` | `2,3` | Pulso de 100 ms (por defecto) en relé CH3 del device 2 |
+| `queryDI` | `1` | Devuelve bitmask DI del device 1 (0–255) |
+| `queryDI` | `2` | Devuelve bitmask DI del device 2 |
+
 ---
 
 ## Protocolo RS485
