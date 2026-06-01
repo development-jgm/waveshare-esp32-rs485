@@ -237,6 +237,13 @@ Las funciones también se pueden llamar directamente desde la página del dispos
 | `queryDI` | `1` | Devuelve bitmask DI del device 1 (0–255) |
 | `queryDI` | `2` | Devuelve bitmask DI del device 2 |
 
+El resultado de `queryDI` es un entero que representa el estado de las 8 entradas digitales como bitmask: bit 0 = DI1, bit 7 = DI8. Bit a `1` significa opto OFF (pin HIGH/pullup); bit a `0` significa opto ON (pin LOW).
+
+Ejemplos de interpretación:
+- `255` (`0b11111111`) → todas las DI en HIGH → ningún optoacoplador activo → ninguna máquina enchufada ni en uso
+- `254` (`0b11111110`) → DI1=0 (opto activo), DI2–DI8=1 → máquina 1 enchufada, sensor running libre
+- `-1` → el dispositivo no ha respondido en 200 ms
+
 ---
 
 ## 7. Protocolo RS485
