@@ -140,8 +140,8 @@ int activateMachine(String machineIdStr) {
     int idx = getMachineIndex(machineIdStr.toInt());
     if (idx < 0 || machines[idx].machineId == 0) return -1;
 
-    relayPulse(machines[idx].rs485Device, machines[idx].relayChannel, RELAY_PULSE_MS);
     machineWasActivatedFromCloud[idx] = true;
+    relayPulse(machines[idx].rs485Device, machines[idx].relayChannel, RELAY_PULSE_MS);
     Log.info("activateMachine: machineId=%d OK", machines[idx].machineId);
     return 1;
 }
