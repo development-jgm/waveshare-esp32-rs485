@@ -1,0 +1,818 @@
+// -------Copy and paste with the right config for each shop-----------
+int shopId = 99;
+int machineId[] = {99, 99, 0, 99, 0, 0}; 
+int tariffId[] = {99, 99, 0, 99, 0, 0}; 
+int usagePrice[] = {5, 5, 0, 4, 0, 0}; // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+// --------------Here ends the configuration------------------------
+
+Hotel San Diego
+int shopId = 1;
+int machineId[] = {1, 10};
+int tariffId[] = {1, 2};
+int usagePrice[] = {5, 5, 5, 5, 5, 5};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Hotel Zentral Center
+int shopId = 4;
+int machineId[] = {12, 15, 16, 18, 20, 22}; // Order is: Secadora 2, Secadora 1, Lavadora 4, Lavadora 3, Lavadora 2, Lavadora 1
+int tariffId[] = {3, 3, 3, 3, 4, 4};
+int usagePrice[] = {5, 5, 5, 5, 4, 4};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, true, false};
+bool isArgon = false;
+bool isBoron = true;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Marina San Miguel
+int shopId = 5;
+int machineId[] = {23, 24, 26, 27, 0, 0};
+int tariffId[] = {5, 5, 5, 6, 0, 0};
+int usagePrice[] = {5, 5, 5, 4 ,0 ,0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = true;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Complejo Los Gigantes (Device 1: Secadoras)
+int shopId = 6;
+int machineId[] = {0, 0, 0, 31, 32, 0}; // Order is: Not exist, not exist, not exist, Secadora 1 (Pegada a la puerta), Secadora 2, not exist
+int tariffId[] = {0, 0, 0, 8, 8, 0};
+int usagePrice[] = {0, 0, 0, 4, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = true;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Complejo Los Gigantes (Device 2: Lavadoras)
+int shopId = 10;
+int machineId[] = {0, 0, 0, 0, 28, 29}; // Order is: Not exist, not exist, not exist, not exist, Lavadora 2, Lavadora 1 (Pegada al baño)
+int tariffId[] = {0, 0, 0, 0, 7, 7};
+int usagePrice[] = {0, 0, 0, 0, 5, 5};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = true;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Marina SC
+int shopId = 11;
+int machineId[] = {35, 33, 34, 36, 0, 0};
+int tariffId[] = {10, 9, 9, 9, 0, 0};
+int usagePrice[] = {4, 5, 5, 5, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Oasis Golf Resort
+int shopId = 12;
+int machineId[] = {37, 39, 0, 0, 40, 38};   // Lavadora 1 (37), Secadora 1 (39), NULL, NULL, Secadora 2 (40), Lavadora 2 (38)
+int tariffId[] = {12, 13, 0, 0, 13, 12};
+int usagePrice[] = {5, 4, 0, 0, 4, 5};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = true;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Green Golf Resort
+int shopId = 13;
+int machineId[] = {0, 0, 0, 41, 42, 43}; // Order is: Not exist, not exist, not exist, Lavadora 1 (Pegada a la pared), Lavadora 2 (en el medio), Secadora 1
+int tariffId[] = {0, 0, 0, 14, 14, 15};
+int usagePrice[] = {0, 0, 0, 5, 5, 4};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = true;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Villa Mandi Golf Resort
+int shopId = 17;
+int machineId[] = {0, 44, 0, 45, 0, 0}; // Order is: Lavadora 1, Secadora 1, Not exist, not exist, not exist, not exist
+int tariffId[] = {0, 16, 0, 17, 0, 0};
+int usagePrice[] = {0, 5, 0, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Vanilla Garden Hotel
+int shopId = 18;
+int machineId[] = {46, 47, 0, 0, 0, 0}; // Order is: Lavadora 1, Secadora 1, Not exist, not exist, not exist, not exist
+int tariffId[] = {18, 19, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, true, false, false, false, false};
+bool isArgon = false;
+bool isBoron = true;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Royal Sunset beach
+int shopId = 20;
+int machineId[] = {48, 49, 50, 0, 0, 0}; // Order is: Lavadora 1, Lavadora 2, Secadora 1
+int tariffId[] = {20, 20, 21, 0, 0, 0};
+int usagePrice[] = {5, 5, 4, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, true, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Sunset Bay Atamanes
+int shopId = 21;
+int machineId[] = {52, 53, 0, 54, 0, 0}; // Order is: Lavadora 1, Lavadora 2, Nothing, Secadora 1 (Atamanes has 3rd output damaged)
+int tariffId[] = {22, 22, 0, 23, 0, 0};
+int usagePrice[] = {5, 5, 0, 5, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 55; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Sunset Harbour
+int shopId = 23;
+int machineId[] = {55, 56, 0, 57, 0, 0}; // Order is: Lavadora 1, Lavadora 2, Secadora 1
+int tariffId[] = {25, 25, 0, 26, 0, 0};
+int usagePrice[] = {5, 5, 0, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 55; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+// IMPORTANTE PARA SUNSET HARBOUR: En esta tienda, numberOfPulsesPerActivation = 55 porque la tarifa de las secadoras es de 5 euros
+
+Aguamar
+int shopId = 25;
+int machineId[] = {58, 59, 0, 60, 0, 0}; // Order is: Lavadora 1, Lavadora 2, Secadora 1
+int tariffId[] = {27, 27, 0, 28, 0, 0};
+int usagePrice[] = {5, 5, 0, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Malibu Park
+int shopId = 32;
+int machineId[] = {67, 68, 0, 0, 0, 0};
+int tariffId[] = {33, 34, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, true, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+HG Tenerife Sur
+int shopId = 29;
+int machineId[] = {63, 62, 61, 0, 0, 0};
+int tariffId[] = {31, 30, 30, 0, 0, 0};
+int usagePrice[] = {4, 5, 5, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = true;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Checkin Bungalows Atlantida
+int shopId = 30;
+int machineId[] = {66, 65, 0, 64, 0, 0};
+int tariffId[] = {33, 32, 0, 32, 0, 0};
+int usagePrice[] = {4, 5, 0, 5, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Malibu Albatros Playa Paraiso (SSID: LAVANDERIA Pass: 52960239)
+int shopId = 33;
+int machineId[] = {73, 74, 0, 0, 0, 0};
+int tariffId[] = {35, 36, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Beverly Hills Club
+int shopId = 35;
+int machineId[] = {78, 79, 0, 80, 81, 82};
+int tariffId[] = {39, 39, 0, 39, 40, 40};
+int usagePrice[] = {5, 5, 0, 5, 4, 4};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, true, true};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Parque del Sol
+int shopId = 34;
+int machineId[] = {75, 76, 77, 0, 0, 0};
+int tariffId[] = {37, 37,38, 0, 0, 0};
+int usagePrice[] = {5, 5, 4, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, true, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Cala Blanca (GC)
+int shopId = 36;
+int machineId[] = {83, 84, 0, 0, 0, 0};
+int tariffId[] = {41, 42, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = true;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Bahia Fanabe Suites
+int shopId = 38;
+int machineId[] = {85, 86, 0, 0, 0, 0};
+int tariffId[] = {43, 44, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Tienda De Testeo
+int shopId = 47;
+int machineId[] = {89, 91, 0, 0, 0, 0};
+int tariffId[] = {46, 48, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Teidemar
+int shopId = 48;
+int machineId[] = {92, 93, 0, 0, 0, 0};
+int tariffId[] = {49, 50, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, true, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+La Cuesta Lavadoras
+int shopId = 49;
+int machineId[] = {94, 95, 96, 97, 98, 0};
+int tariffId[] = {52, 52, 51, 51, 51, 0};
+int usagePrice[] = {7, 7, 5, 5, 5, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+La Cuesta Secadoras
+int shopId = 50;
+int machineId[] = {99, 100, 101, 102, 0, 0};
+int tariffId[] = {53, 54, 53, 53, 0, 0};
+int usagePrice[] = {5, 6, 5, 5, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Bahia de Lobos (FT)
+int shopId = 51;
+int machineId[] = {103, 104, 106, 0, 107, 0};
+int tariffId[] = {55, 55, 56, 0, 56, 0};
+int usagePrice[] = {5, 5, 4, 0, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Hotel Club Caleta Dorada 1 (FT)
+int shopId = 52;
+int machineId[] = {108, 109, 0, 0, 0, 0};
+int tariffId[] = {57, 58, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Hotel Club Caleta Dorada 2 (FT)
+int shopId = 53;
+int machineId[] = {110, 111, 0, 0, 0, 0};
+int tariffId[] = {59, 60, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+HL Club Playa Blanca (LZ)
+int shopId = 54;
+int machineId[] = {112, 113, 0, 0, 0, 0};
+int tariffId[] = {61, 62, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, true, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Ohasis Club
+int shopId = 55;
+int machineId[] = {114, 115, 0, 0, 0, 0};
+int tariffId[] = {63, 64, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Hollywood Mirage 1
+int shopId = 69;
+int machineId[] = {139, 0, 0, 140, 141, 0};
+int tariffId[] = {79, 0, 0, 79, 80, 0};
+int usagePrice[] = {5, 0, 0, 5, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, true, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Hollywood Mirage 2
+int shopId = 57;
+int machineId[] = {121, 122, 0, 0, 0, 0};
+int tariffId[] = {67, 68, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, true, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Hollywood Mirage 3
+int shopId = 58;
+int machineId[] = {123, 0, 124, 0, 0, 0};
+int tariffId[] = {69, 0, 70, 0, 0, 0};
+int usagePrice[] = {5, 0, 4, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, true, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Sunwing Resort
+int shopId = 59;
+int machineId[] = {125, 126, 127, 128, 129, 0};
+int tariffId[] = {71, 71, 71, 72, 72, 0};
+int usagePrice[] = {5, 5, 5, 4, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Beverly Hills Heights
+int shopId = 61;
+int machineId[] = {130, 131, 133, 0, 0, 0};
+int tariffId[] = {73, 74, 75, 0, 0, 0};
+int usagePrice[] = {5, 5, 5, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, true, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = true;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Coliving Casa Alsatia (GC)
+int shopId = 56;
+int machineId[] = {142, 143, 0, 0, 0, 0};
+int tariffId[] = {81, 82, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, true, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Palm beach
+// ATTENTION: No hay boquilla 2 en los MUON
+int shopId = 70;
+int machineId[] = {144, 145, 146, 159, 0, 0};
+int tariffId[] = {83, 83, 84, 84, 0, 0};
+int usagePrice[] = {5, 5, 4, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, true, true, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 40; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+// IMPORTANTE PARA PALM BEACH: En esta tienda, numberOfPulsesPerActivation = 40 porque si no, las secadoras reciben más pulsos de la cuenta y se activan con 90 min.
+
+Hotel Escuela SC
+// ATTENTION: Test RF module connected to Boquilla 1: buzzerPin A2, rfPulsePin S4, rfModulePowerPin = A5
+int shopId = 72;
+int machineId[] = {0, 147, 148, 0, 0, 0}; // ATTENTION: Boquilla 1 se dejó para RF module
+int tariffId[] = {0, 85, 86, 0, 0, 0};
+int usagePrice[] = {0, 5, 4, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Sunbeach Apartments
+int shopId = 77;
+int machineId[] = {150, 151, 0, 153, 152, 0};
+int tariffId[] = {83, 83, 0, 84, 84, 0};
+int usagePrice[] = {5, 5, 0, 4, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, true, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 40; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Next Hotel Muon
+// ATTENTION: Test RF module connected on Muon to Boquilla 2: buzzerPin A0, rfPulsePin A5, rfModulePowerPin = D27
+int shopId = 84;
+int machineId[] = {155, 0, 156, 157, 158, 0}; // ATTENTION: Boquilla 2 se dejó para RF module en el Muon
+int tariffId[] = {89, 0, 89, 90, 90, 0};
+int usagePrice[] = {5, 0, 5, 4, 4, 0}; // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Atlantic Holiday
+// Aunque en esta tienda hay dos máquinas, el dispositivo tiene 4 boquillas porque al fabricarlo pensé que habían 4 máquinas.
+// Todas las boquillas funcionan, pero hay 0 entre 163 y 164 para dejar libre esa boca y que cuadre con el etiquetado
+int shopId = 92;
+int machineId[] = {163, 0, 0, 0, 164, 0};
+int tariffId[] = {95, 0, 0, 0, 96, 0};
+int usagePrice[] = {5, 0, 0, 0, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Residencia Betancourt de Molina La Orotava
+int shopId = 89;
+int machineId[] = {160, 161, 162, 0, 0, 0};
+int tariffId[] = {93, 93, 94, 0, 0, 0};
+int usagePrice[] = {2, 2, 2, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Sol Arona
+int shopId = 95;
+int machineId[] = {165, 166, 0, 167, 0, 0};
+int tariffId[] = {97, 97, 0, 98, 0, 0};
+int usagePrice[] = {5, 5, 0, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Ona Perla Gris
+int shopId = 96;
+int machineId[] = {168, 169, 0, 170, 0, 0};
+int tariffId[] = {99, 99, 0, 100, 0, 0};
+int usagePrice[] = {5, 5, 0, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 40; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+La Pinta
+int shopId = 99;
+int machineId[] = {171, 172, 0, 173, 0, 0};
+int tariffId[] = {101, 101, 0, 102, 0, 0};
+int usagePrice[] = {5, 5, 0, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Ona Alborada
+int shopId = 100;
+int machineId[] = {174, 175, 0, 177, 176, 0};
+int tariffId[] = {103, 103, 0, 104, 104, 0};
+int usagePrice[] = {5, 5, 0, 4, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, true, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Hovima Panorama
+int shopId = 102;
+int machineId[] = {178, 179, 0, 0, 0, 0};
+int tariffId[] = {105, 106, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, true, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+
+Santa Barbara
+int shopId = 103;
+int machineId[] = {182, 183, 0, 186, 184, 185, 0};
+int tariffId[] = {107, 107, 0, 107, 108, 108, 0};
+int usagePrice[] = {5, 5, 0, 5, 4, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, true, true};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = true;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = false;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Santa María
+int shopId = 104;
+int machineId[] = {187, 0, 0, 188, 189, 0};
+int tariffId[] = {109, 0, 0, 109, 100, 0};
+int usagePrice[] = {5, 0, 0, 5, 4, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, false, true, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 40; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Jardín Caleta
+int shopId = 107;
+int machineId[] = {190, 191, 0, 193, 0, 0};
+int tariffId[] = {111, 111, 0, 112, 0, 0};
+int usagePrice[] = {5, 5, 0, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, true, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Club del Carmen (LZ)
+int shopId = 111;
+int machineId[] = {194, 195, 0, 196, 0, 0};
+int tariffId[] = {113, 113, 0, 114, 0, 0};
+int usagePrice[] = {5, 5, 0, 4, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, false, false, true, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
+
+Club Atlantis
+int shopId = 112;
+int machineId[] = {197, 198, 0, 0, 0, 0};
+int tariffId[] = {115, 116, 0, 0, 0, 0};
+int usagePrice[] = {5, 4, 0, 0, 0, 0};  // ToDo: Get this from the cloud
+bool isNonBrandedMachine[] = {false, true, false, false, false, false};
+bool isArgon = false;
+bool isBoron = false;
+bool isPhoton2 = false;
+bool isEthernetFeatherWing = false;
+bool isEvalBoard = false;
+bool isMounBoard = true;
+bool isMuonEthernet = false;
+int numberOfPulsesPerActivation = 45; // Attention! This value is normally 45, but there are a few exceptions. At Sunset Harbour it was changed to 55 after changing tariff of dryer to 5 euro. In Palm beach, this value is 40, becasue the dryers can not handle exceeding pulses and change to 90 min if exceed 40 pulses. In shops where price is 2euro, this value is 25
