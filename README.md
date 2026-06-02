@@ -239,9 +239,38 @@ Las funciones también se pueden llamar directamente desde la página del dispos
 
 El resultado de `queryDI` es un entero que representa el estado de las 8 entradas digitales como bitmask: bit 0 = DI1, bit 7 = DI8. Bit a `1` significa opto OFF (pin HIGH/pullup); bit a `0` significa opto ON (pin LOW).
 
-Ejemplos de interpretación:
-- `255` (`0b11111111`) → todas las DI en HIGH → ningún optoacoplador activo → ninguna máquina enchufada ni en uso
-- `254` (`0b11111110`) → DI1=0 (opto activo), DI2–DI8=1 → máquina 1 enchufada, sensor running libre
+El bitmask se interpreta por pares de bits — un par por máquina:
+
+| Máquina | Bit enchufada | Bit en uso | Estado | Valor par (binario) |
+|---------|--------------|------------|--------|---------------------|
+| 1 | bit 0 (DI1) = 1 | bit 1 (DI2) = 1 | Fuera de servicio | 11 |
+| 1 | bit 0 (DI1) = 0 | bit 1 (DI2) = 0 | Disponible | 00 |
+| 1 | bit 0 (DI1) = 0 | bit 1 (DI2) = 1 | En uso | 10 |
+| 2 | bit 2 (DI3) = 1 | bit 3 (DI4) = 1 | Fuera de servicio | 11 |
+| 2 | bit 2 (DI3) = 0 | bit 3 (DI4) = 0 | Disponible | 00 |
+| 2 | bit 2 (DI3) = 0 | bit 3 (DI4) = 1 | En uso | 10 |
+| 3 | bit 4 (DI5) = 1 | bit 5 (DI6) = 1 | Fuera de servicio | 11 |
+| 3 | bit 4 (DI5) = 0 | bit 5 (DI6) = 0 | Disponible | 00 |
+| 3 | bit 4 (DI5) = 0 | bit 5 (DI6) = 1 | En uso | 10 |
+| 4 | bit 6 (DI7) = 1 | bit 7 (DI8) = 1 | Fuera de servicio | 11 |
+| 4 | bit 6 (DI7) = 0 | bit 7 (DI8) = 0 | Disponible | 00 |
+| 4 | bit 6 (DI7) = 0 | bit 7 (DI8) = 1 | En uso | 10 |
+
+Valores de referencia (resto de máquinas fuera de servicio):
+
+| Valor | M1 | M2 | M3 | M4 |
+|-------|----|----|----|----|
+| `255` | Fuera de servicio | Fuera de servicio | Fuera de servicio | Fuera de servicio |
+| `254` | En uso | Fuera de servicio | Fuera de servicio | Fuera de servicio |
+| `252` | Disponible | Fuera de servicio | Fuera de servicio | Fuera de servicio |
+| `251` | Fuera de servicio | En uso | Fuera de servicio | Fuera de servicio |
+| `243` | Fuera de servicio | Disponible | Fuera de servicio | Fuera de servicio |
+| `239` | Fuera de servicio | Fuera de servicio | En uso | Fuera de servicio |
+| `207` | Fuera de servicio | Fuera de servicio | Disponible | Fuera de servicio |
+| `191` | Fuera de servicio | Fuera de servicio | Fuera de servicio | En uso |
+| `63`  | Fuera de servicio | Fuera de servicio | Fuera de servicio | Disponible |
+| `0`   | Disponible | Disponible | Disponible | Disponible |
+
 - `-1` → el dispositivo no ha respondido en 200 ms
 
 ---
