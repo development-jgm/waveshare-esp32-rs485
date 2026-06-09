@@ -22,10 +22,10 @@ struct MachineConfig {
 static const int NUM_MACHINES = 6;
 
 MachineConfig machines[NUM_MACHINES] = {
-    {99,  53, 1, 1, 0, 1},  // Secadora 6:  device 1, relay 1, DI1 / DI2
-    {100, 54, 1, 2, 2, 3},  // Secadora 7:  device 1, relay 2, DI3 / DI4
-    {101, 53, 1, 3, 4, 5},  // Secadora 8:  device 1, relay 3, DI5 / DI6
-    {102, 53, 1, 4, 6, 7},  // Secadora 9:  device 1, relay 4, DI7 / DI8
+    {99,  53, 3, 1, 0, 1},  // Secadora 6:  device 3, relay 1, DI1 / DI2
+    {100, 54, 3, 2, 2, 3},  // Secadora 7:  device 3, relay 2, DI3 / DI4
+    {101, 53, 3, 3, 4, 5},  // Secadora 8:  device 3, relay 3, DI5 / DI6
+    {102, 53, 3, 4, 6, 7},  // Secadora 9:  device 3, relay 4, DI7 / DI8
     {0,    0, 0, 0, 0, 0},  // unused
     {0,    0, 0, 0, 0, 0},  // unused
 };
