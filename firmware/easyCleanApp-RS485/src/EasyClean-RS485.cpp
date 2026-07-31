@@ -19,15 +19,21 @@ struct MachineConfig {
     int  runningBit;    // Bit index in queryDI bitmask for "running" sensor (0–7)
 };
 
-static const int NUM_MACHINES = 6;
+static const int NUM_MACHINES = 9;
 
 MachineConfig machines[NUM_MACHINES] = {
-    {99,  53, 3, 1, 0, 1},  // Secadora 6:  device 3, relay 1, DI1 / DI2
-    {100, 54, 3, 2, 2, 3},  // Secadora 7:  device 3, relay 2, DI3 / DI4
-    {101, 53, 3, 3, 4, 5},  // Secadora 8:  device 3, relay 3, DI5 / DI6
-    {102, 53, 3, 4, 6, 7},  // Secadora 9:  device 3, relay 4, DI7 / DI8
-    {0,    0, 0, 0, 0, 0},  // unused
-    {0,    0, 0, 0, 0, 0},  // unused
+    // Secadoras — device 1
+    {99,  53, 1, 1, 0, 1},  // Secadora 6:  device 1, relay 1, DI1 / DI2
+    {100, 54, 1, 2, 2, 3},  // Secadora 7:  device 1, relay 2, DI3 / DI4
+    {101, 53, 1, 3, 4, 5},  // Secadora 8:  device 1, relay 3, DI5 / DI6
+    {102, 53, 1, 4, 6, 7},  // Secadora 9:  device 1, relay 4, DI7 / DI8
+    // Lavadoras — device 2
+    {94,  52, 2, 1, 0, 1},  // Lavadora 1:  device 2, relay 1, DI1 / DI2
+    // Lavadoras — device 3
+    {95,  52, 3, 1, 0, 1},  // Lavadora 2:  device 3, relay 1, DI1 / DI2
+    {96,  51, 3, 2, 2, 3},  // Lavadora 3:  device 3, relay 2, DI3 / DI4
+    {97,  51, 3, 3, 4, 5},  // Lavadora 4:  device 3, relay 3, DI5 / DI6
+    {98,  51, 3, 4, 6, 7},  // Lavadora 5:  device 3, relay 4, DI7 / DI8
 };
 
 static const int RELAY_PULSE_MS = 500;  // pulse duration for machine activation
@@ -108,7 +114,7 @@ static void relayPulse(uint8_t device, int channel, int durationMs) {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 bool machineWasActivatedFromCloud[NUM_MACHINES] = {};
-bool aNewPaymentIsPossible[NUM_MACHINES]        = {true, true, true, true, true, true};
+bool aNewPaymentIsPossible[NUM_MACHINES]        = {true, true, true, true, true, true, true, true, true};
 int  previousDIBitmask[3]                       = {-1, -1, -1};  // indexed by device-1
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
