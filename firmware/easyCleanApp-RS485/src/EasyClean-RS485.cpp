@@ -115,6 +115,7 @@ bool     pendingActivation[NUM_MACHINES]            = {};
 bool     relayActive[NUM_MACHINES]                  = {};
 uint32_t relayOnTime[NUM_MACHINES]                  = {};
 int      previousDIBitmask[3]                       = {-1, -1, -1};  // indexed by device-1
+int      pollIndex                                  = 0;             // round-robin device index (0–2)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 static int getMachineIndex(int id) {
@@ -219,54 +220,55 @@ void loop() {
     delay(500);
 
     uint32_t now = millis();
-    bool skipPoll[3] = {false, false, false};  // skip DI poll for devices that got a relay cmd this cycle
 
-    // Send CMD_ON for newly requested activations
+    // At most ONE RS485 frame exchange per cycle.
+    //
+    // The Waveshare firmware polls its UART from a task that runs every 50 ms,
+    // waits ~8 ms, then reads everything buffered and only parses the packet if
+    // exactly 9 bytes arrived. Two frames sent back to back (9.4 ms each at
+    // 9600 baud) land in the same buffer as 18 bytes and are silently dropped —
+    // even on modules the frames were not addressed to. Leaving the full 500 ms
+    // loop delay between frames guarantees each module sees them one at a time.
+
+    // 1. Relay OFF has priority — never leave a relay stuck on.
+    for (int i = 0; i < NUM_MACHINES; i++) {
+        if (relayActive[i] && (now - relayOnTime[i] >= (uint32_t)RELAY_PULSE_MS)) {
+            sendRelayCmd(machines[i].rs485Device, machines[i].relayChannel, false);
+            relayActive[i] = false;
+            Log.info("activateMachine: machineId=%d relay OFF", machines[i].machineId);
+            return;
+        }
+    }
+
+    // 2. Then a pending activation.
     for (int i = 0; i < NUM_MACHINES; i++) {
         if (pendingActivation[i]) {
             pendingActivation[i] = false;
             sendRelayCmd(machines[i].rs485Device, machines[i].relayChannel, true);
             relayOnTime[i] = now;
             relayActive[i] = true;
-            skipPoll[machines[i].rs485Device - 1] = true;
             Log.info("activateMachine: machineId=%d relay ON", machines[i].machineId);
+            return;
         }
     }
 
-    // Send CMD_OFF for relays that have been on long enough
-    for (int i = 0; i < NUM_MACHINES; i++) {
-        if (relayActive[i] && (now - relayOnTime[i] >= (uint32_t)RELAY_PULSE_MS)) {
-            sendRelayCmd(machines[i].rs485Device, machines[i].relayChannel, false);
-            relayActive[i] = false;
-            skipPoll[machines[i].rs485Device - 1] = true;
-            Log.info("activateMachine: machineId=%d relay OFF", machines[i].machineId);
-        }
-    }
+    // 3. Otherwise poll one device (round-robin: each device every ~1.5 s).
+    int device = pollIndex + 1;
+    pollIndex  = (pollIndex + 1) % 3;
 
-    // Poll each unique device once per cycle (skip devices that received a relay cmd)
-    bool polled[3]       = {false, false, false};
-    int  bitmask[3]      = {-1, -1, -1};
+    int bitmask = queryDevice(device);
+    if (bitmask < 0) return;
 
+    int prev = previousDIBitmask[device - 1];
+
+    // Detect state changes per machine on this device and handle cash payments
     for (int i = 0; i < NUM_MACHINES; i++) {
         if (machines[i].machineId == 0) continue;
-        int d = machines[i].rs485Device - 1;
-        if (!polled[d] && !skipPoll[d]) {
-            bitmask[d] = queryDevice(machines[i].rs485Device);
-            polled[d]  = true;
-        }
-    }
+        if (machines[i].rs485Device != device) continue;
 
-    // Detect state changes per machine and handle cash payments
-    for (int i = 0; i < NUM_MACHINES; i++) {
-        if (machines[i].machineId == 0) continue;
-        int d = machines[i].rs485Device - 1;
-        if (bitmask[d] < 0) continue;
-
-        bool plugged     = isPlugged(bitmask[d], machines[i].pluggedBit);
-        bool running     = isRunning(bitmask[d], machines[i].runningBit);
-        bool prevRunning = (previousDIBitmask[d] >= 0)
-                           ? isRunning(previousDIBitmask[d], machines[i].runningBit)
-                           : running;
+        bool plugged     = isPlugged(bitmask, machines[i].pluggedBit);
+        bool running     = isRunning(bitmask, machines[i].runningBit);
+        bool prevRunning = (prev >= 0) ? isRunning(prev, machines[i].runningBit) : running;
 
         // Machine stopped: reset state so next cash payment can be detected
         if (prevRunning && !running) {
@@ -283,8 +285,5 @@ void loop() {
         }
     }
 
-    // Save bitmasks for next cycle
-    for (int d = 0; d < 3; d++) {
-        if (bitmask[d] >= 0) previousDIBitmask[d] = bitmask[d];
-    }
+    previousDIBitmask[device - 1] = bitmask;
 }
