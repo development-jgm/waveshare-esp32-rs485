@@ -219,6 +219,7 @@ void loop() {
     delay(500);
 
     uint32_t now = millis();
+    bool skipPoll[3] = {false, false, false};  // skip DI poll for devices that got a relay cmd this cycle
 
     // Send CMD_ON for newly requested activations
     for (int i = 0; i < NUM_MACHINES; i++) {
@@ -227,6 +228,7 @@ void loop() {
             sendRelayCmd(machines[i].rs485Device, machines[i].relayChannel, true);
             relayOnTime[i] = now;
             relayActive[i] = true;
+            skipPoll[machines[i].rs485Device - 1] = true;
             Log.info("activateMachine: machineId=%d relay ON", machines[i].machineId);
         }
     }
@@ -236,18 +238,19 @@ void loop() {
         if (relayActive[i] && (now - relayOnTime[i] >= (uint32_t)RELAY_PULSE_MS)) {
             sendRelayCmd(machines[i].rs485Device, machines[i].relayChannel, false);
             relayActive[i] = false;
+            skipPoll[machines[i].rs485Device - 1] = true;
             Log.info("activateMachine: machineId=%d relay OFF", machines[i].machineId);
         }
     }
 
-    // Poll each unique device once per cycle
+    // Poll each unique device once per cycle (skip devices that received a relay cmd)
     bool polled[3]       = {false, false, false};
     int  bitmask[3]      = {-1, -1, -1};
 
     for (int i = 0; i < NUM_MACHINES; i++) {
         if (machines[i].machineId == 0) continue;
         int d = machines[i].rs485Device - 1;
-        if (!polled[d]) {
+        if (!polled[d] && !skipPoll[d]) {
             bitmask[d] = queryDevice(machines[i].rs485Device);
             polled[d]  = true;
         }
