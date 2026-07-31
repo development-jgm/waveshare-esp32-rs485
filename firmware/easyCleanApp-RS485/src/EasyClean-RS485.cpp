@@ -233,6 +233,9 @@ void loop() {
         if (relayActive[i] && (now - relayOnTime[i] >= (uint32_t)RELAY_PULSE_MS)) {
             sendRelayCmd(machines[i].rs485Device, machines[i].relayChannel, false);
             relayActive[i] = false;
+            // Poll this device first on the next cycle so the cached bitmask
+            // refreshes as soon as possible after an activation.
+            pollIndex = machines[i].rs485Device - 1;
             Log.info("activateMachine: machineId=%d relay OFF", machines[i].machineId);
             return;
         }
