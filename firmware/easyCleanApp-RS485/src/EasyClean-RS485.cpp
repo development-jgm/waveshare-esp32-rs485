@@ -156,22 +156,18 @@ int activateMachine(String machineIdStr) {
 int testMachineIsPowered(String machineIdStr) {
     int idx = getMachineIndex(machineIdStr.toInt());
     if (idx < 0) return -1;
-
-    int bitmask = queryDevice(machines[idx].rs485Device);
-    if (bitmask < 0) return -1;
-
-    return isPlugged(bitmask, machines[idx].pluggedBit) ? 1 : 0;
+    int d = machines[idx].rs485Device - 1;
+    if (previousDIBitmask[d] < 0) return -1;
+    return isPlugged(previousDIBitmask[d], machines[idx].pluggedBit) ? 1 : 0;
 }
 
 // testMachineIsUnderUsage("machineId") → 1 if running, 0 if free, -1 on error
 int testMachineIsUnderUsage(String machineIdStr) {
     int idx = getMachineIndex(machineIdStr.toInt());
     if (idx < 0) return -1;
-
-    int bitmask = queryDevice(machines[idx].rs485Device);
-    if (bitmask < 0) return -1;
-
-    return isRunning(bitmask, machines[idx].runningBit) ? 1 : 0;
+    int d = machines[idx].rs485Device - 1;
+    if (previousDIBitmask[d] < 0) return -1;
+    return isRunning(previousDIBitmask[d], machines[idx].runningBit) ? 1 : 0;
 }
 
 // testConnectionToShop("N") → N (echo test)
