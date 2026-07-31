@@ -115,6 +115,7 @@ static void relayPulse(uint8_t device, int channel, int durationMs) {
 // ── State ─────────────────────────────────────────────────────────────────────
 bool machineWasActivatedFromCloud[NUM_MACHINES] = {};
 bool aNewPaymentIsPossible[NUM_MACHINES]        = {true, true, true, true, true, true, true, true, true};
+bool pendingActivation[NUM_MACHINES]            = {};
 int  previousDIBitmask[3]                       = {-1, -1, -1};  // indexed by device-1
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -145,10 +146,8 @@ static void sendCashPaymentToSupabase(int mId, int tId) {
 int activateMachine(String machineIdStr) {
     int idx = getMachineIndex(machineIdStr.toInt());
     if (idx < 0 || machines[idx].machineId == 0) return -1;
-
     machineWasActivatedFromCloud[idx] = true;
-    relayPulse(machines[idx].rs485Device, machines[idx].relayChannel, RELAY_PULSE_MS);
-    Log.info("activateMachine: machineId=%d OK", machines[idx].machineId);
+    pendingActivation[idx] = true;
     return 1;
 }
 
@@ -220,6 +219,15 @@ void setup() {
 
 void loop() {
     delay(500);
+
+    // Execute pending relay activations before polling (avoids RS485 conflict)
+    for (int i = 0; i < NUM_MACHINES; i++) {
+        if (pendingActivation[i]) {
+            pendingActivation[i] = false;
+            relayPulse(machines[i].rs485Device, machines[i].relayChannel, RELAY_PULSE_MS);
+            Log.info("activateMachine: machineId=%d OK", machines[i].machineId);
+        }
+    }
 
     // Poll each unique device once per cycle
     bool polled[3]       = {false, false, false};
