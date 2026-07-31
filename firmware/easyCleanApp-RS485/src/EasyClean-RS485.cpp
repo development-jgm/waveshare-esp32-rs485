@@ -249,6 +249,15 @@ void loop() {
             relayOnTime[i] = now;
             relayActive[i] = true;
             Log.info("activateMachine: machineId=%d relay ON", machines[i].machineId);
+            // Audit trail: every relay activation is traceable in the Particle
+            // console with a timestamp. Published here and not from the cloud
+            // function because Particle.publish() can block on the server ack.
+            Particle.publish("MachineActivated",
+                             String::format("{\"machineId\":%d,\"device\":%d,\"relay\":%d}",
+                                            machines[i].machineId,
+                                            machines[i].rs485Device,
+                                            machines[i].relayChannel),
+                             PRIVATE);
             return;
         }
     }
