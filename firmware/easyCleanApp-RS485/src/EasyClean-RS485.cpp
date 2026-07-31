@@ -101,22 +101,20 @@ static int queryDevice(uint8_t addr) {
     return -2;
 }
 
-static void relayPulse(uint8_t device, int channel, int durationMs) {
-    uint8_t cmdOn[9], cmdOff[9];
-    cmdOn[0]  = device;
-    cmdOff[0] = device;
-    memcpy(cmdOn  + 1, CMD_ON[channel - 1],  8);
-    memcpy(cmdOff + 1, CMD_OFF[channel - 1], 8);
-    rs485Send(cmdOn, 9);
-    delay(durationMs);
-    rs485Send(cmdOff, 9);
+static void sendRelayCmd(uint8_t device, int channel, bool on) {
+    uint8_t cmd[9];
+    cmd[0] = device;
+    memcpy(cmd + 1, on ? CMD_ON[channel - 1] : CMD_OFF[channel - 1], 8);
+    rs485Send(cmd, 9);
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
-bool machineWasActivatedFromCloud[NUM_MACHINES] = {};
-bool aNewPaymentIsPossible[NUM_MACHINES]        = {true, true, true, true, true, true, true, true, true};
-bool pendingActivation[NUM_MACHINES]            = {};
-int  previousDIBitmask[3]                       = {-1, -1, -1};  // indexed by device-1
+bool     machineWasActivatedFromCloud[NUM_MACHINES] = {};
+bool     aNewPaymentIsPossible[NUM_MACHINES]        = {true, true, true, true, true, true, true, true, true};
+bool     pendingActivation[NUM_MACHINES]            = {};
+bool     relayActive[NUM_MACHINES]                  = {};
+uint32_t relayOnTime[NUM_MACHINES]                  = {};
+int      previousDIBitmask[3]                       = {-1, -1, -1};  // indexed by device-1
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 static int getMachineIndex(int id) {
@@ -220,12 +218,25 @@ void setup() {
 void loop() {
     delay(500);
 
-    // Execute pending relay activations before polling (avoids RS485 conflict)
+    uint32_t now = millis();
+
+    // Send CMD_ON for newly requested activations
     for (int i = 0; i < NUM_MACHINES; i++) {
         if (pendingActivation[i]) {
             pendingActivation[i] = false;
-            relayPulse(machines[i].rs485Device, machines[i].relayChannel, RELAY_PULSE_MS);
-            Log.info("activateMachine: machineId=%d OK", machines[i].machineId);
+            sendRelayCmd(machines[i].rs485Device, machines[i].relayChannel, true);
+            relayOnTime[i] = now;
+            relayActive[i] = true;
+            Log.info("activateMachine: machineId=%d relay ON", machines[i].machineId);
+        }
+    }
+
+    // Send CMD_OFF for relays that have been on long enough
+    for (int i = 0; i < NUM_MACHINES; i++) {
+        if (relayActive[i] && (now - relayOnTime[i] >= (uint32_t)RELAY_PULSE_MS)) {
+            sendRelayCmd(machines[i].rs485Device, machines[i].relayChannel, false);
+            relayActive[i] = false;
+            Log.info("activateMachine: machineId=%d relay OFF", machines[i].machineId);
         }
     }
 
