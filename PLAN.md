@@ -112,7 +112,8 @@ que las hacía parecer culpables. Sobre esa base se construyeron dos hipótesis
 tramas RS485— y **ambas eran erróneas**. Lo que zanjó el asunto fue exportar la
 semana *anterior* al cambio: 168 registros con exactamente **1** intervalo por
 debajo de 120 s, frente a 300 registros con **217** después, y el inicio acotado
-al 31-07-2026 a las 16:12 hora local. Mismas máquinas, mismo cableado, mismos
+al 31-07-2026 a las 15:12 hora local (14:12 UTC; la tienda está en UTC+1, no
+UTC+2). Mismas máquinas, mismo cableado, mismos
 optos. Eso convirtió un juego de adivinanzas en una regresión con hora de inicio
 conocida.
 
