@@ -36,6 +36,28 @@ MachineConfig machines[NUM_MACHINES] = {
 
 static const int RELAY_PULSE_MS = 500;  // pulse duration for machine activation
 
+// ── Debounce ──────────────────────────────────────────────────────────────────
+// The running sensor is an opto that is OFF while the machine runs, so the input
+// is held only by the pull-up in that state — high impedance, and noise can pull
+// it low. A glitch can therefore only ever fake a STOP, never a start, and a
+// faked stop is what re-arms the cash payment detector and invents a sale.
+//
+// The old GPIO firmware confirmed every transition with 10 agreeing reads over
+// 100 ms (see checkAvailableMachinePinLowFunction in easyCleanApp-FW_old). That
+// debounce was lost in the move to RS485 and its absence produced ~290 bogus
+// records on 2026-07-31/08-01. Restored here, but scaled to the bus: we sample
+// each device roughly every 1.6 s, not every 10 ms.
+//
+// Confirmation is applied to the stop transition only. Starts stay immediate, so
+// the frontend's post-activation check gains no latency.
+static const uint32_t STOP_CONFIRM_MS    = 120000;   // 2 min of continuous "stopped"
+static const uint32_t PAYMENT_LOCKOUT_MS = 1800000;  // 30 min between cash records
+
+// Backstop, sized from a week of clean data: real turnarounds of the same machine
+// are >=32 min (it cannot be reused before its cycle ends) and false duplicates
+// were <14 min, leaving an empty band in between. Applies to the cash payment
+// record only — never to activateMachine, which must always fire the relay.
+
 // ── RS485 relay command tables ────────────────────────────────────────────────
 static const uint8_t CMD_ON[8][8] = {
     {0x06, 0x05, 0x00, 0x01, 0xFF, 0x00, 0xDC, 0x4D},  // CH1 ON
@@ -146,6 +168,10 @@ bool     pendingActivation[NUM_MACHINES]            = {};
 bool     relayActive[NUM_MACHINES]                  = {};
 uint32_t relayOnTime[NUM_MACHINES]                  = {};
 int      previousDIBitmask[3]                       = {-1, -1, -1};  // indexed by device-1
+bool     confirmedRunning[NUM_MACHINES]             = {};  // debounced running state
+bool     stateSeeded[NUM_MACHINES]                  = {};  // first valid read taken
+uint32_t stoppedSince[NUM_MACHINES]                 = {};  // when the raw bit first went low
+uint32_t lastPaymentAt[NUM_MACHINES]                = {};  // 0 = no cash record yet
 int      pollIndex                                  = 0;             // round-robin device index (0–2)
 
 // Bus scan. moduleVersion[] is indexed by RS485 address 1–8 and holds either a
@@ -222,12 +248,15 @@ int testMachineIsPowered(String machineIdStr) {
 }
 
 // testMachineIsUnderUsage("machineId") → 1 if running, 0 if free, -1 on error
+//
+// Returns the debounced state, not the raw bit. With the raw bit a dryer read as
+// free every time its sensor glitched mid-cycle, so the frontend could offer an
+// occupied machine to a customer.
 int testMachineIsUnderUsage(String machineIdStr) {
     int idx = getMachineIndex(machineIdStr.toInt());
     if (idx < 0) return -1;
-    int d = machines[idx].rs485Device - 1;
-    if (previousDIBitmask[d] < 0) return -1;
-    return isRunning(previousDIBitmask[d], machines[idx].runningBit) ? 1 : 0;
+    if (!stateSeeded[idx]) return -1;
+    return confirmedRunning[idx] ? 1 : 0;
 }
 
 // rescanBus("") → 1. Non-blocking: only raises the flag, loop() walks the bus.
@@ -367,28 +396,53 @@ void loop() {
     int bitmask = queryDevice(device);
     if (bitmask < 0) return;
 
-    int prev = previousDIBitmask[device - 1];
-
     // Detect state changes per machine on this device and handle cash payments
     for (int i = 0; i < NUM_MACHINES; i++) {
         if (machines[i].machineId == 0) continue;
         if (machines[i].rs485Device != device) continue;
 
-        bool plugged     = isPlugged(bitmask, machines[i].pluggedBit);
-        bool running     = isRunning(bitmask, machines[i].runningBit);
-        bool prevRunning = (prev >= 0) ? isRunning(prev, machines[i].runningBit) : running;
+        bool plugged    = isPlugged(bitmask, machines[i].pluggedBit);
+        bool rawRunning = isRunning(bitmask, machines[i].runningBit);
 
-        // Machine stopped: reset state so next cash payment can be detected
-        if (prevRunning && !running) {
-            machineWasActivatedFromCloud[i] = false;
-            aNewPaymentIsPossible[i]        = true;
+        // Seed from the first valid reading: whatever the machine is doing when
+        // we boot is the starting point, not a transition.
+        if (!stateSeeded[i]) {
+            stateSeeded[i]      = true;
+            confirmedRunning[i] = rawRunning;
+            stoppedSince[i]     = 0;
+            continue;
         }
 
-        // Machine just started: if not activated from cloud → cash payment
-        if (!prevRunning && running) {
-            if (!machineWasActivatedFromCloud[i] && aNewPaymentIsPossible[i] && plugged) {
-                sendCashPaymentToSupabase(machines[i].machineId, machines[i].tariffId);
-                aNewPaymentIsPossible[i] = false;
+        if (rawRunning) {
+            stoppedSince[i] = 0;  // any running sample cancels a pending stop
+
+            // Start is accepted on a single sample: a glitch cannot fake one.
+            if (!confirmedRunning[i]) {
+                confirmedRunning[i] = true;
+                Log.info("machineId=%d started", machines[i].machineId);
+
+                if (!machineWasActivatedFromCloud[i] && aNewPaymentIsPossible[i] && plugged) {
+                    if (lastPaymentAt[i] != 0 && (now - lastPaymentAt[i]) < PAYMENT_LOCKOUT_MS) {
+                        Log.warn("cash payment suppressed by lockout: machineId=%d (%lu s since last)",
+                                 machines[i].machineId,
+                                 (unsigned long)((now - lastPaymentAt[i]) / 1000));
+                    } else {
+                        sendCashPaymentToSupabase(machines[i].machineId, machines[i].tariffId);
+                        lastPaymentAt[i]         = now;
+                        aNewPaymentIsPossible[i] = false;
+                    }
+                }
+            }
+        } else if (confirmedRunning[i]) {
+            // Stop must hold continuously for STOP_CONFIRM_MS before we believe it.
+            if (stoppedSince[i] == 0) stoppedSince[i] = now;
+
+            if ((now - stoppedSince[i]) >= STOP_CONFIRM_MS) {
+                confirmedRunning[i]             = false;
+                stoppedSince[i]                 = 0;
+                machineWasActivatedFromCloud[i] = false;
+                aNewPaymentIsPossible[i]        = true;
+                Log.info("machineId=%d stopped (confirmed)", machines[i].machineId);
             }
         }
     }
