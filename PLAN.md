@@ -257,6 +257,48 @@ curl https://api.particle.io/v1/devices/.../rescanBus -d access_token=$TOKEN -d 
 ### Hardware
 - Sustituir el MAX3485 por un módulo RS485 con aislamiento galvánico.
 
+### Evaluar: migrar a módulos Modbus RTU de función fija
+
+Candidato: **Waveshare Modbus RTU Relay (D)** — 8 relés + 8 entradas digitales,
+Modbus RTU sobre RS485, 9600–115200 bps, dirección 1–255 configurable por el bus,
+optoacopladores bidireccionales, 7–36 V, carril DIN, −40 a +85 °C.
+[Wiki](https://www.waveshare.com/wiki/Modbus_RTU_Relay_(D)) ·
+[Producto](https://www.waveshare.com/modbus-rtu-relay-d.htm)
+
+Sustituiría al ESP32-S3-POE-ETH-8DI-8RO manteniendo la misma cuenta de E/S, así
+que el cableado por máquina no cambia: 2 DI y 1 relé.
+
+**Por qué merece la pena.** No es estética: elimina una clase entera de fallos.
+
+- **Sin firmware propio en el módulo.** El desbordamiento de `buf[20]` no estaba
+  en el hardware Waveshare, estaba en su *sketch de ejemplo*, que adaptamos. Un
+  esclavo Modbus de función fija no tiene sketch. Con él desaparecen también el
+  flasheo de direcciones por USB, la trampa del power-cycle y la consulta de
+  versión que hubo que inventar para detectarla.
+- **Protocolo estándar en vez de propio.** Las tablas `CMD_ON`/`CMD_OFF` con CRC
+  calculados a mano y el marco de 9 bytes se sustituyen por códigos de función
+  normalizados: `0x02` leer entradas discretas, `0x05` escribir bobina. Se puede
+  usar una librería Modbus probada en lugar de `queryDevice()` y `sendRelayCmd()`.
+- **Dirección configurable por el bus**, sin abrir el cuadro ni recompilar.
+- **Antirrebote integrado** en las entradas digitales, según la documentación del
+  fabricante — justo la capa cuya ausencia causó el incidente del 31-07.
+- **Modo flash-on / flash-off**: pulso temporizado ejecutado por el propio módulo.
+  Elimina la máquina de estados `relayActive` / `relayOnTime` del Photon y toda la
+  coreografía de "una trama por ciclo" montada alrededor del pulso.
+- Aislamiento galvánico, que solapa con el punto anterior de sustituir el MAX3485.
+
+**Lo que NO resuelve.** No explica por qué rebota el sensor. Su antirrebote filtra
+el síntoma igual que el nuestro; si hay un problema eléctrico en la entrada,
+seguirá ahí, solo que oculto. Ver "Diagnóstico abierto".
+
+**Cuándo hacerlo.** No durante el incidente: el protocolo actual funciona y hay
+que medir primero si el antirrebote de `2906e05` resolvió el problema. Cambiar el
+hardware ahora impediría saber cuál de los dos cambios funcionó.
+
+Plan sugerido: comprar **una** unidad y probarla en banco con el sistema actual en
+producción. Si la integración Modbus va limpia, sustituir los tres aprovechando la
+misma visita en que se cambie el MAX3485, para abrir el cuadro una sola vez.
+
 ### Integración
 - Conexión de Lavamax SmartKiosk al flujo real de la aplicación.
 
