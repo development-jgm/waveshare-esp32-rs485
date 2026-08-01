@@ -8,7 +8,7 @@
 // Each ESP32 on the RS485 bus must have a unique address (0x01–0x03).
 // flash.sh sets this automatically via --address N before compiling.
 //   Unit 1 → 0x01   Unit 2 → 0x02   Unit 3 → 0x03
-#define DEVICE_ADDRESS      0x03
+#define DEVICE_ADDRESS      0x01
 // ─────────────────────────────────────────────────────────────────────────────
 
 #define Extension_CH1       1     // Expansion Channel 1

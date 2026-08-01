@@ -144,15 +144,27 @@ void RS485Task(void *parameter) {
 
 void RS485_Loop()
 {
-  uint8_t Receive_Flag = 0;       // Receiving mark
-  Receive_Flag = lidarSerial.available();
+  // NOTE: available() returns an int and buf is only 20 bytes. Reading straight
+  // into buf overflowed it as soon as a second module joined the bus: with one
+  // module the most that can ever be buffered is a 9-byte query plus a 9-byte
+  // reply, but with three modules every module sees all six frames (~54 bytes)
+  // and the write ran past the end of the array — straight into lidarSerial,
+  // which sits immediately after buf in memory. A merged burst is unusable
+  // anyway (only 9-byte packets are valid), so drain and drop it.
+  int available = lidarSerial.available();
 
-  if (Receive_Flag > 0) {
+  if (available > 0) {
     if(RS485_cmd_Time > 1)
       delay((uint16_t)RS485_cmd_Time);
     else
       delay(1);
-    Receive_Flag = lidarSerial.available();
+    available = lidarSerial.available();
+    if(available > (int)sizeof(buf)){
+      while(lidarSerial.available()) lidarSerial.read();
+      printf("Note : Oversized burst discarded (%d bytes) - RS485 !\r\n", available);
+      return;
+    }
+    uint8_t Receive_Flag = (uint8_t)available;
     lidarSerial.readBytes(buf, Receive_Flag);
     if(Receive_Flag == 9){
       // Byte 0: device address — discard if not ours
