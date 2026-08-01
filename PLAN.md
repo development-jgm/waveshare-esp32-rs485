@@ -64,16 +64,47 @@ Resumen de los cambios:
 | `658d88b` | Ordenar la tabla de máquinas por `machineId` |
 | `f52120b` | Sondear primero el device activado en el ciclo posterior al pulso |
 | `e2629d8` | Publicar `MachineActivated` en cada activación |
-| `e2a544f` | **Corregir el desbordamiento del buffer de recepción RS485 del Waveshare** |
+| `e2a544f` | Corregir el desbordamiento del buffer de recepción RS485 del Waveshare |
 | `7386d35` | Consulta de versión de firmware y escaneo del bus |
+| `2906e05` | **Antirrebote del sensor de marcha y límite de registros de pago — la causa raíz** |
+
+**Cuidado con el orden de esta tabla: no es el orden de importancia.** El
+desbordamiento de `e2a544f` era un defecto real y había que corregirlo, pero
+**no era la causa de los registros falsos**. Se reflashearon los tres módulos y
+el problema siguió igual, apareciendo además en los tres devices. La causa era
+la pérdida del antirrebote al migrar del firmware GPIO al RS485, corregida en
+`2906e05`.
+
+### Limpieza de datos (01-08-2026)
+366 registros en la ventana del incidente, de los que se conservaron **38** y se
+borraron **328**. Criterio: dentro de cada ráfaga de una misma máquina —registros
+separados por menos de 30 min, con un tope de 45 min por grupo para no fusionar
+dos ciclos— se conserva el primero, que es plausiblemente el uso real.
+
+Filtros de seguridad en el propio `where`: solo `machine_id` 94–102, solo
+`payment_method = 1` (los pagos con tarjeta nunca se tocan) y solo ids dentro
+de la ventana (143521–144195). Respaldo previo en
+`~/Descargas/backup_before_deletion.csv`; las columnas no exportadas son
+reconstruibles, porque en estas filas `appuser_id`, `payment_status` y
+`creditcard_payment_details_id` son nulas y `tariff_id` se deduce de la máquina.
+
+Resultado verificado: las 38 filas restantes coinciden exactamente con la lista
+prevista. Usos por máquina en 24 h: 5, 4, 6, 1, 3, 5, 5, 5, 4 — del mismo orden
+que la semana limpia. Antes del borrado, las secadoras marcaban 77, 80, 80 y 55.
+
+Los usos conservados son **plausibles, no ciertos**: en una ráfaga de 48
+registros no hay forma de saber si hubo uno o dos usos reales.
 
 ---
 
 ## Qué hemos ganado
 
-- **El origen de los registros falsos está corregido de raíz**, no tapado. Unos
-  250 registros de pago espurios en 22 horas resultaron venir de una corrupción
-  de memoria, no de los sensores, ni del cableado, ni de las máquinas.
+- **El origen de los registros falsos está corregido**: la ausencia de
+  antirrebote, no la corrupción de memoria. Unos 290 registros espurios en 24
+  horas venían de que una sola muestra del sensor bastaba para inventar una
+  venta.
+- **Producción limpia.** 328 registros falsos eliminados con criterio
+  reproducible y respaldo.
 - **Visibilidad remota de los módulos.** La variable `modules` del Photon informa
   de la versión de firmware de cada módulo y distingue uno sano de uno que sigue
   con firmware antiguo (`legacy`) o de dos módulos compartiendo dirección
@@ -88,6 +119,31 @@ Resumen de los cambios:
 ---
 
 ## Lecciones aprendidas
+
+**Un defecto real y llamativo puede no ser la causa del síntoma que investigas.**
+Esta es la lección principal del incidente. El desbordamiento de buffer era
+espectacular —corrompía el objeto UART, encajaba temporalmente con la ampliación
+del bus, tenía una explicación elegante— y era **el defecto equivocado**. La
+causa era mucho más aburrida: al migrar del firmware GPIO al RS485 se perdió por
+el camino el antirrebote que confirmaba cada transición del sensor, y una sola
+muestra pasó a bastar para registrar una venta. Comparar los dos ficheros al
+migrar habría ahorrado el día entero.
+
+**Cuando alguien que conoce el sistema propone una hipótesis, comprobarla antes
+de aparcarla.** El antirrebote lo propuso Javier por la mañana. Se pospuso para
+no enmascarar la medición del arreglo del buffer. Ese razonamiento era correcto
+en abstracto y equivocado en concreto: se pospuso la causa real para medir un
+efecto colateral, a costa de varias horas y de unos 40 registros falsos más.
+
+**Un cabo suelto sin explicar es una señal, no un detalle.** La periodicidad de
+~10 s en los intervalos no encajaba con ninguna de las hipótesis y se atribuyó
+sin pruebas al firmware antiguo del Photon. Sobrevivió a todos los reflasheos.
+Un dato que la teoría no explica es exactamente donde está la teoría siguiente.
+
+**Verificar de qué componente sale el dato antes de depurar el componente.**
+Se dieron por hecho horas de que las filas las publicaba el Photon. Escuchar el
+stream de eventos durante dos minutos lo confirmó — y podría haberlo refutado,
+que era justo el valor de la comprobación. Costó dos minutos y se hizo tarde.
 
 **Un bug latente puede seguir siendo inalcanzable hasta que el sistema escala.**
 `RS485_Loop()` leía los bytes de `available()` directamente sobre `buf[20]` sin
@@ -147,35 +203,40 @@ filtrado en ningún punto de la cadena: `digitalRead` cada 20 ms sin antirrebote
 registro de pago en Supabase. Una única lectura mala bastaba para inventarse una
 venta.
 
-**Instrumentar antes de parchear.** Aplicar los filtros defensivos antes de
-corregir el desbordamiento habría ocultado si la corrección de fondo funcionaba.
+**Instrumentar antes de parchear, pero no a costa de retrasar la corrección.**
+Medir antes de parchear es buena práctica; convertirlo en regla rígida hizo que
+se pospusiera el arreglo bueno mientras seguían entrando registros falsos.
 
 ---
 
 ## Pruebas en curso
 
-**1. Un ciclo completo de secado debe producir un registro por uso.** Es la prueba
-de aceptación de `e2a544f`. Antes de la corrección, la máquina 100 generó 17
-registros en 13 minutos.
+**1. Un ciclo completo de secado debe producir un registro por uso.** Es la
+prueba de aceptación de `2906e05`, el antirrebote. Antes de la corrección, la
+máquina 100 generó 17 registros en 13 minutos y la 94 llegó a uno cada 10 s.
+
+El firmware con antirrebote arrancó el **2026-08-01 a las 14:14:30 UTC**:
 
 ```sql
 select machine_id, count(*), min(created_at), max(created_at)
 from machine_usages
 where machine_id between 94 and 102
-  and created_at > '2026-08-01 13:00:00+00'
+  and payment_method = 1
+  and created_at > '2026-08-01 14:15:00+00'
 group by machine_id
 order by machine_id;
 ```
 
-Un registro por uso cierra el caso. Una secadora con quince significa que queda
-una segunda causa.
+Estado a las 14:39 UTC: **25 minutos, un único registro y ninguna ráfaga**.
+Indicio favorable pero insuficiente — hace falta un ciclo completo con máquinas
+funcionando de verdad. Referencia de la semana limpia: 2–8 usos por máquina y día.
 
-**2. Estabilidad del escaneo del bus en arranque en frío.** El primer escaneo tras
-reflashear los módulos reportó la dirección 3 como `conflict`, luego `legacy`, y
-después se estabilizó: 8 escaneos consecutivos limpios. Lo más probable es que el
-módulo aún se estuviera estabilizando tras su power-cycle, pero la dirección 3
-lleva cuatro máquinas colgadas, así que conviene revisarlo en el próximo arranque
-en frío.
+**2. Estabilidad del escaneo del bus en arranque en frío.** La dirección 3 da
+`conflict` en el primer escaneo tras arrancar el Photon y se limpia al reescanear.
+Ocurrió dos veces, la segunda con los módulos llevando una hora encendidos, así
+que **la explicación de "el módulo se estaba estabilizando" queda descartada**: es
+reproducible en frío. No afecta al sondeo de DI, pero la dirección 3 lleva cuatro
+máquinas y sigue sin explicación.
 
 ```bash
 curl "https://api.particle.io/v1/devices/0a10aced202194944a05320c/modules?access_token=$TOKEN"
@@ -188,25 +249,6 @@ curl https://api.particle.io/v1/devices/.../rescanBus -d access_token=$TOKEN -d 
 
 ## Pendiente
 
-### Capas defensivas (diseñadas, deliberadamente sin aplicar)
-Se han dejado en espera para no enmascarar el resultado de la prueba 1. Ambas son
-cambios solo del Photon, por OTA.
-
-- **Confirmación de parada.** Exigir que el sensor de marcha lleve 2 minutos
-  caído antes de dar la máquina por parada. Se aplica únicamente a la transición
-  a parada, ya que los glitches solo pueden fingir una parada, de modo que la
-  detección de arranque no gana ni un segundo de latencia.
-  `testMachineIsUnderUsage` pasaría a devolver el estado confirmado en lugar del
-  bit crudo, lo que además evita que una secadora aparezca como libre a mitad de
-  ciclo.
-- **Bloqueo de 30 minutos** entre registros de pago en efectivo de la misma
-  máquina. El valor sale de una semana de datos limpios: las rotaciones reales
-  son de ≥32 min (una máquina no puede reutilizarse antes de que termine su
-  ciclo) y los duplicados falsos están por debajo de 14 min, dejando una banda
-  vacía en medio. Un bloqueo de 30 minutos descarta 3 de 159 registros, y esos
-  tres son a su vez sospechosos de ser duplicados. **No** debe condicionar a
-  `activateMachine`: un pago por app tiene que disparar el relé siempre.
-
 ### Front end
 - Sustituir la comprobación única posterior a la activación por una ventana de
   reintentos de 20–30 s. El firmware refresca el estado cacheado en ~1,6 s tras
@@ -218,5 +260,17 @@ cambios solo del Photon, por OTA.
 ### Integración
 - Conexión de Lavamax SmartKiosk al flujo real de la aplicación.
 
+### Diagnóstico abierto
+- **Por qué rebota el sensor de marcha.** El antirrebote filtra el síntoma, pero
+  la causa del rebote sigue sin identificarse. Con el opto en OFF —máquina en
+  marcha— la entrada queda en alta impedancia sostenida solo por el pull-up, y
+  algo la está tirando a nivel bajo. Empezó el 31-07 al ampliar el bus, con el
+  mismo cableado que llevaba una semana funcionando. Si vuelve a manifestarse
+  pese al filtro, hay que medir la entrada con osciloscopio.
+- **`conflict` en la dirección 3 en arranque en frío** (ver prueba 2).
+
 ### Datos
-- Decidir qué hacer con los ~250 registros falsos del 31-07 y 01-08 de 2026.
+- ~~Decidir qué hacer con los registros falsos del 31-07 y 01-08~~ — hecho el
+  01-08: 328 borrados, 38 conservados. Ver "Limpieza de datos".
+- Si la prueba 1 detecta más ráfagas mañana, repetir la limpieza con el mismo
+  criterio sobre la nueva ventana.
