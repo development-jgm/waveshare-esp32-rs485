@@ -1,143 +1,161 @@
-# Project Plan — Waveshare ESP32 RS485 Control
+# Plan del proyecto — Control RS485 Waveshare ESP32
 
-Laundromat machine control and monitoring for **McClean La Cuesta** (shopId 50),
-part of the Lavamax SmartKiosk system.
+Control y monitorización de máquinas de lavandería para **McClean La Cuesta**
+(shopId 50), dentro del sistema Lavamax SmartKiosk.
 
 ---
 
-## Current topology
+## Topología actual
 
-A Particle Photon 2 bridges Particle Cloud → RS485 (9600 8N1) to three Waveshare
-ESP32-S3-POE-ETH-8DI-8RO modules. Photon device ID `0a10aced202194944a05320c`.
+Un Particle Photon 2 hace de puente entre Particle Cloud y un bus RS485
+(9600 8N1) con tres módulos Waveshare ESP32-S3-POE-ETH-8DI-8RO.
+ID del Photon: `0a10aced202194944a05320c`.
 
-| RS485 address | Machines | machineId |
+| Dirección RS485 | Máquinas | machineId |
 |---|---|---|
 | 1 | Secadoras 6–9 | 99, 100, 101, 102 |
 | 2 | Lavadora 1 | 94 |
 | 3 | Lavadoras 2–5 | 95, 96, 97, 98 |
 
-Per machine: one relay channel for activation, two opto-isolated digital inputs
-(plugged / running). Bus terminated with 120 Ω at both ends. Waveshare firmware
-**v1.1.0**; machine table lives in `firmware/easyCleanApp-RS485/src/EasyClean-RS485.cpp`.
+Cada máquina usa un canal de relé para la activación y dos entradas digitales
+optoacopladas (enchufada / en marcha). El bus lleva 120 Ω de terminación en
+ambos extremos. Firmware Waveshare **v1.1.0**. La tabla de máquinas está en
+`firmware/easyCleanApp-RS485/src/EasyClean-RS485.cpp`.
 
-**Wiring convention.** `INPUT_PULLUP`; opto ON = pin LOW = bit 0. The dryers'
-"running" output is a dedicated 4N25 whose opto is **OFF while the machine runs**,
-so `isRunning` = bit is 1. Note the asymmetry this creates: stopped is a driven
-low (robust), running is held only by the pull-up (high impedance, noise-prone).
-Glitches can therefore only ever fake a **stop**, never a start.
+**Convención de cableado.** `INPUT_PULLUP`; opto en ON = pin a nivel bajo = bit 0.
+La salida de "en marcha" de las secadoras es un 4N25 dedicado cuyo opto está
+**en OFF mientras la máquina funciona**, así que `isRunning` = bit a 1.
+
+Conviene fijarse en la asimetría que esto provoca: con la máquina parada la
+entrada está clavada a masa por el opto (baja impedancia, robusta), y con la
+máquina en marcha queda sostenida únicamente por el pull-up (alta impedancia,
+sensible a ruido). Por tanto un glitch solo puede fingir una **parada**, nunca
+un arranque. Ese detalle es el que justifica que la confirmación de estado se
+aplique en un solo sentido.
 
 ---
 
-## Done
+## Hecho
 
-### Base system
-- 9-byte addressed RS485 protocol: `[DEVICE_ADDRESS] + [8-byte payload]`; modules
-  discard packets not addressed to them. CRC-16 Modbus is computed over the
-  8-byte payload only, so the command tables are address-independent.
-- Explicit ON (0xFF) / OFF (0x00) relay commands instead of toggle (0x55), which
-  leaves a relay stuck if the second command is lost.
-- Three modules flashed, addressed and verified on a shared bus.
-- Photon 2 firmware `EasyClean-RS485.cpp` with cloud functions `activateMachine`,
-  `testMachineIsPowered`, `testMachineIsUnderUsage`, `testConnectionToShop`,
-  `publishNetworkInfo`, `rescanBus`, and the `modules` variable.
-- Cash-payment detection: a machine that starts without a cloud activation
-  publishes `SupabaseCashPayment/`.
-- `MachineActivated` event published on every relay pulse (audit trail).
+### Sistema base
+- Protocolo RS485 direccionado de 9 bytes: `[DEVICE_ADDRESS] + [payload de 8 bytes]`.
+  Cada módulo descarta los paquetes que no van dirigidos a él. El CRC-16 Modbus
+  se calcula solo sobre los 8 bytes del payload, así que las tablas de comandos
+  son independientes de la dirección.
+- Comandos de relé explícitos ON (0xFF) / OFF (0x00) en lugar del toggle (0x55),
+  que deja el relé pegado si se pierde el segundo comando.
+- Tres módulos flasheados, direccionados y verificados sobre el bus compartido.
+- Firmware del Photon 2 `EasyClean-RS485.cpp` con las funciones cloud
+  `activateMachine`, `testMachineIsPowered`, `testMachineIsUnderUsage`,
+  `testConnectionToShop`, `publishNetworkInfo`, `rescanBus` y la variable
+  `modules`.
+- Detección de pago en efectivo: una máquina que arranca sin activación desde la
+  nube publica `SupabaseCashPayment/`.
+- Evento `MachineActivated` publicado en cada pulso de relé, como traza de
+  auditoría.
 
-### The 2026-07-31 incident — root cause and fix
-See [Lessons learned](#lessons-learned) for the reasoning. Summary of the fixes:
+### El incidente del 31-07-2026 — causa raíz y corrección
+El razonamiento completo está en [Lecciones aprendidas](#lecciones-aprendidas).
+Resumen de los cambios:
 
-| commit | change |
+| commit | cambio |
 |---|---|
-| `3bdadb0` | Serialize RS485 traffic: one frame per `loop()` cycle |
-| `658d88b` | Sort the machine table by `machineId` |
-| `f52120b` | Poll the activated device first on the cycle after the relay pulse |
-| `e2629d8` | Publish `MachineActivated` on every activation |
-| `e2a544f` | **Fix the RS485 receive buffer overflow in the Waveshare firmware** |
-| `7386d35` | Firmware version query + bus scan |
+| `3bdadb0` | Serializar el tráfico RS485: una trama por ciclo de `loop()` |
+| `658d88b` | Ordenar la tabla de máquinas por `machineId` |
+| `f52120b` | Sondear primero el device activado en el ciclo posterior al pulso |
+| `e2629d8` | Publicar `MachineActivated` en cada activación |
+| `e2a544f` | **Corregir el desbordamiento del buffer de recepción RS485 del Waveshare** |
+| `7386d35` | Consulta de versión de firmware y escaneo del bus |
 
 ---
 
-## What we gained
+## Qué hemos ganado
 
-- **The false-record source is fixed at the root**, not papered over. ~250 bogus
-  cash-payment records in 22 hours traced to a memory-corruption bug, not to
-  sensors, wiring or the machines.
-- **Remote visibility into the modules.** The `modules` Particle variable reports
-  each module's firmware version, and distinguishes a healthy module from one
-  still running old firmware (`legacy`) or from two modules sharing an address
-  (`conflict`). Previously this could only be inferred from behaviour.
-- **A bus that tolerates growth.** Traffic is serialized and the receive path is
-  bounded, so adding a fourth module no longer risks corrupting the others.
-- **Cloud functions that cannot stall the bus.** All of them either raise a flag
-  or read cached state; none touches `Serial1`.
-- **A measured basis for tuning.** Real machine turnaround times were derived
-  from a week of clean data rather than guessed.
+- **El origen de los registros falsos está corregido de raíz**, no tapado. Unos
+  250 registros de pago espurios en 22 horas resultaron venir de una corrupción
+  de memoria, no de los sensores, ni del cableado, ni de las máquinas.
+- **Visibilidad remota de los módulos.** La variable `modules` del Photon informa
+  de la versión de firmware de cada módulo y distingue uno sano de uno que sigue
+  con firmware antiguo (`legacy`) o de dos módulos compartiendo dirección
+  (`conflict`). Antes esto solo podía deducirse observando el comportamiento.
+- **Un bus que aguanta crecer.** El tráfico está serializado y la recepción
+  acotada, así que añadir un cuarto módulo ya no puede corromper a los demás.
+- **Funciones cloud que no pueden bloquear el bus.** Todas levantan un flag o
+  leen estado cacheado; ninguna toca `Serial1`.
+- **Una base medida para los ajustes.** Los tiempos reales de rotación de las
+  máquinas se obtuvieron de una semana de datos limpios, no de una estimación.
 
 ---
 
-## Lessons learned
+## Lecciones aprendidas
 
-**A latent bug can stay unreachable until the system scales.** `RS485_Loop()` read
-`available()` bytes straight into `buf[20]` with no bound. With one module the most
-that can ever be buffered is a 9-byte query plus a 9-byte reply — 18 bytes, just
-under the limit. Adding two modules put six frames (~54 bytes) on the wire per poll
-cycle, and every module sees all of them because the bus is shared. The linker
-places `lidarSerial` immediately after `buf`:
+**Un bug latente puede seguir siendo inalcanzable hasta que el sistema escala.**
+`RS485_Loop()` leía los bytes de `available()` directamente sobre `buf[20]` sin
+acotar. Con un solo módulo, lo máximo que puede haber en el buffer es una
+consulta de 9 bytes más una respuesta de 9: **18 bytes**, justo por debajo del
+límite. Al añadir dos módulos pasaron a circular seis tramas (~54 bytes) por
+ciclo de sondeo, y todos los módulos las ven porque el bus es compartido. El
+enlazador coloca `lidarSerial` justo detrás de `buf`:
 
 ```
 0x3fca1c24  buf          (20 bytes)
-0x3fca1c38  lidarSerial  <-- overwritten
+0x3fca1c38  lidarSerial  <-- se sobrescribía
 ```
 
-so the overflow corrupted the UART object itself. The bug had existed since day
-one; the expansion merely made it reachable.
+de modo que el desbordamiento corrompía el propio objeto UART. El fallo estaba
+ahí desde el principio; la ampliación solo lo hizo alcanzable.
 
-**Correlation pointed at the wrong culprit until we had a control window.** The
-false records were 94.7% concentrated on the dryers, which made the dryers look
-guilty — two hypotheses (drum-reversal cutting the sensor, then RS485 frame
-corruption) were built on that and both were wrong. What settled it was exporting
-the week *before* the change: 168 records with exactly **1** interval under 120 s,
-versus 300 records with **217** afterwards, with the onset pinned to 2026-07-31
-16:12 local. Same machines, same wiring, same optos. That turned a guessing game
-into a regression with a known start time.
+**La correlación señaló al culpable equivocado hasta que tuvimos una ventana de
+control.** El 94,7 % de los registros falsos se concentraban en las secadoras, lo
+que las hacía parecer culpables. Sobre esa base se construyeron dos hipótesis
+—que la inversión del tambor cortaba el sensor, y luego que se corrompían las
+tramas RS485— y **ambas eran erróneas**. Lo que zanjó el asunto fue exportar la
+semana *anterior* al cambio: 168 registros con exactamente **1** intervalo por
+debajo de 120 s, frente a 300 registros con **217** después, y el inicio acotado
+al 31-07-2026 a las 16:12 hora local. Mismas máquinas, mismo cableado, mismos
+optos. Eso convirtió un juego de adivinanzas en una regresión con hora de inicio
+conocida.
 
-**Ask for the before-data early.** It cost less than any of the hypotheses it
-disproved.
+**Pedir los datos de "antes" cuanto antes.** Costó menos que cualquiera de las
+hipótesis que refutó.
 
-**A manufacturer's status output is not a motor contactor.** Reading the 4N25
-schematic ruled out the drum-reversal theory in one step. Get the hardware
-documentation before theorising about hardware behaviour.
+**La salida de estado de un fabricante no es un contactor de motor.** Leer el
+esquema del 4N25 descartó la teoría de la inversión del tambor en un solo paso.
+Conseguir la documentación del hardware antes de teorizar sobre su
+comportamiento.
 
-**Particle cloud functions must be non-blocking.** They run in the application
-thread; a `delay()` inside one lets `Particle.process()` re-enter `loop()`, and
-both then write to the same RS485 bus. The rule: validate the argument, raise a
-flag, return. Reads return cached state and never touch the bus.
+**Las funciones cloud de Particle tienen que ser no bloqueantes.** Se ejecutan en
+el hilo de aplicación; un `delay()` dentro de una permite que
+`Particle.process()` reentre en `loop()`, y ambos acaban escribiendo en el mismo
+bus RS485. La regla: validar el argumento, levantar un flag y salir. Las lecturas
+devuelven estado cacheado y no tocan el bus.
 
-**One RS485 frame per loop cycle.** The Waveshare polls its UART from a 50 ms task
-and only parses packets that are exactly 9 bytes. Frames sent back to back merge
-in its buffer and are dropped — which is what lost `CMD_OFF` commands and left a
-relay stuck on.
+**Una trama RS485 por ciclo de loop.** El Waveshare consulta su UART desde una
+tarea que corre cada 50 ms y solo interpreta paquetes de exactamente 9 bytes. Dos
+tramas seguidas se fusionan en su buffer y se descartan enteras, que es lo que
+hacía perder comandos `CMD_OFF` y dejaba un relé pegado.
 
-**A flash that reports success has not necessarily taken effect.** The module keeps
-running the old firmware until it is power-cycled over USB; `--after hard-reset`
-is not enough. This cost debugging time twice, which is why the version query
-exists now.
+**Un flasheo que informa de éxito no ha surtido efecto necesariamente.** El módulo
+sigue ejecutando el firmware antiguo hasta que se le hace un power-cycle por USB;
+`--after hard-reset` no basta. Esto costó tiempo de depuración en dos ocasiones,
+y por eso existe ahora la consulta de versión.
 
-**Never take an irreversible action from a single sample.** Nothing in the chain
-filtered anything: `digitalRead` every 20 ms with no debounce → `DIN_Flag` → RS485
-reply → a single-sample decision on the Photon → a payment record in Supabase.
-One bad reading was enough to invent a sale.
+**Nunca tomar una acción irreversible a partir de una sola muestra.** No había
+filtrado en ningún punto de la cadena: `digitalRead` cada 20 ms sin antirrebote →
+`DIN_Flag` → respuesta RS485 → decisión de una sola muestra en el Photon →
+registro de pago en Supabase. Una única lectura mala bastaba para inventarse una
+venta.
 
-**Instrument before patching.** Applying the defensive filters before fixing the
-overflow would have hidden whether the real fix worked.
+**Instrumentar antes de parchear.** Aplicar los filtros defensivos antes de
+corregir el desbordamiento habría ocultado si la corrección de fondo funcionaba.
 
 ---
 
-## Tests in progress
+## Pruebas en curso
 
-**1. A full drying cycle must produce one record per use.** This is the acceptance
-test for `e2a544f`. Before the fix, machine 100 produced 17 records in 13 minutes.
+**1. Un ciclo completo de secado debe producir un registro por uso.** Es la prueba
+de aceptación de `e2a544f`. Antes de la corrección, la máquina 100 generó 17
+registros en 13 minutos.
 
 ```sql
 select machine_id, count(*), min(created_at), max(created_at)
@@ -148,50 +166,56 @@ group by machine_id
 order by machine_id;
 ```
 
-One record per use closes the case. A dryer showing fifteen means a second cause
-remains.
+Un registro por uso cierra el caso. Una secadora con quince significa que queda
+una segunda causa.
 
-**2. Bus scan stability on a cold start.** The first scan after the module reflash
-reported address 3 as `conflict`, then `legacy`, then settled — 8 consecutive clean
-scans since. Most likely the module was still settling after its power-cycle, but
-address 3 carries four machines, so recheck on the next cold start:
+**2. Estabilidad del escaneo del bus en arranque en frío.** El primer escaneo tras
+reflashear los módulos reportó la dirección 3 como `conflict`, luego `legacy`, y
+después se estabilizó: 8 escaneos consecutivos limpios. Lo más probable es que el
+módulo aún se estuviera estabilizando tras su power-cycle, pero la dirección 3
+lleva cuatro máquinas colgadas, así que conviene revisarlo en el próximo arranque
+en frío.
 
 ```bash
 curl "https://api.particle.io/v1/devices/0a10aced202194944a05320c/modules?access_token=$TOKEN"
 curl https://api.particle.io/v1/devices/.../rescanBus -d access_token=$TOKEN -d arg=""
 ```
 
-**3. End-to-end cash payment** against the real application flow.
+**3. Pago en efectivo end-to-end** contra el flujo real de la aplicación.
 
 ---
 
-## Pending
+## Pendiente
 
-### Defensive layers (designed, deliberately not yet applied)
-Held back so they do not mask the result of test 1. Both are Photon-only, OTA.
+### Capas defensivas (diseñadas, deliberadamente sin aplicar)
+Se han dejado en espera para no enmascarar el resultado de la prueba 1. Ambas son
+cambios solo del Photon, por OTA.
 
-- **Stop confirmation.** Require the running sensor to stay low for 2 minutes
-  before declaring a machine stopped. Applied to the stop transition only, since
-  glitches can only fake a stop — so activation detection keeps zero added latency.
-  `testMachineIsUnderUsage` would then return the confirmed state instead of the
-  raw bit, which also stops a dryer reading as free mid-cycle.
-- **30-minute lockout** between cash-payment records for the same machine. Sized
-  from a week of clean data: real turnarounds are ≥32 min (a machine cannot be
-  reused before its cycle ends) and false duplicates are <14 min, leaving an empty
-  band in between. A 30-minute lockout drops 3 of 159 records, and those three are
-  themselves suspected duplicates. Must **not** gate `activateMachine` — an app
-  payment has to fire the relay regardless.
+- **Confirmación de parada.** Exigir que el sensor de marcha lleve 2 minutos
+  caído antes de dar la máquina por parada. Se aplica únicamente a la transición
+  a parada, ya que los glitches solo pueden fingir una parada, de modo que la
+  detección de arranque no gana ni un segundo de latencia.
+  `testMachineIsUnderUsage` pasaría a devolver el estado confirmado en lugar del
+  bit crudo, lo que además evita que una secadora aparezca como libre a mitad de
+  ciclo.
+- **Bloqueo de 30 minutos** entre registros de pago en efectivo de la misma
+  máquina. El valor sale de una semana de datos limpios: las rotaciones reales
+  son de ≥32 min (una máquina no puede reutilizarse antes de que termine su
+  ciclo) y los duplicados falsos están por debajo de 14 min, dejando una banda
+  vacía en medio. Un bloqueo de 30 minutos descarta 3 de 159 registros, y esos
+  tres son a su vez sospechosos de ser duplicados. **No** debe condicionar a
+  `activateMachine`: un pago por app tiene que disparar el relé siempre.
 
-### Frontend
-- Replace the single post-activation check with a retry window of 20–30 s. The
-  firmware refreshes cached state within ~1.6 s of the relay pulse; the real
-  latency is the machine physically starting.
+### Front end
+- Sustituir la comprobación única posterior a la activación por una ventana de
+  reintentos de 20–30 s. El firmware refresca el estado cacheado en ~1,6 s tras
+  el pulso del relé; la latencia real es el arranque físico de la máquina.
 
 ### Hardware
-- Replace the MAX3485 with a galvanically isolated RS485 module.
+- Sustituir el MAX3485 por un módulo RS485 con aislamiento galvánico.
 
-### Integration
-- Lavamax SmartKiosk connection to the real application flow.
+### Integración
+- Conexión de Lavamax SmartKiosk al flujo real de la aplicación.
 
-### Data
-- Decide what to do with the ~250 false records from 2026-07-31/08-01.
+### Datos
+- Decidir qué hacer con los ~250 registros falsos del 31-07 y 01-08 de 2026.
