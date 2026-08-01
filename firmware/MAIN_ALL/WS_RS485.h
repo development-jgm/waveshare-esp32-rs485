@@ -11,6 +11,18 @@
 #define DEVICE_ADDRESS      0x01
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Firmware version ──────────────────────────────────────────────────────────
+// Readable over RS485 so the Photon can tell which build each module is really
+// running. A flash that reports success does NOT take effect until the module
+// is power-cycled over USB, and without this there is no way to detect that
+// remotely. Bump on every change to this firmware.
+//   1.0.0  addressed 9-byte protocol + queryDI
+//   1.1.0  RS485 receive buffer overflow fix + version query
+#define FW_VERSION_MAJOR    1
+#define FW_VERSION_MINOR    1
+#define FW_VERSION_PATCH    0
+// ─────────────────────────────────────────────────────────────────────────────
+
 #define Extension_CH1       1     // Expansion Channel 1
 #define Extension_CH2       2     // Expansion Channel 2
 #define Extension_CH3       3     // Expansion Channel 3

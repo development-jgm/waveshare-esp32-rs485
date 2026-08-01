@@ -60,6 +60,11 @@ static const uint8_t CMD_OFF[8][8] = {
 static const uint8_t CMD_QUERY_DI[8] = {
     0x06, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+static const uint8_t CMD_QUERY_VER[8] = {
+    0x06, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+static const int BUS_SCAN_MAX_ADDR = 8;  // scan the whole addressable range
 
 // ── RS485 low-level ───────────────────────────────────────────────────────────
 static const pin_t DE_RE = D2;
@@ -99,6 +104,34 @@ static int queryDevice(uint8_t addr) {
     return -2;
 }
 
+// Returns the packed version (major*10000 + minor*100 + patch), or a negative
+// code: -1 no answer, -2 malformed. A malformed answer on an address that
+// should hold exactly one module is the signature of two modules replying at
+// once, i.e. a duplicate DEVICE_ADDRESS.
+static int queryVersion(uint8_t addr) {
+    while (Serial1.available()) Serial1.read();
+
+    uint8_t cmd[9];
+    cmd[0] = addr;
+    memcpy(cmd + 1, CMD_QUERY_VER, 8);
+    rs485Send(cmd, 9);
+
+    uint32_t deadline = millis() + 200;
+    while (Serial1.available() < 9) {
+        if (millis() > deadline) return -1;
+        delay(1);
+    }
+
+    uint8_t resp[9];
+    Serial1.readBytes((char*)resp, 9);
+
+    if (resp[0] == addr && resp[1] == 0x06 && resp[2] == 0x02) {
+        return resp[3] * 10000 + resp[4] * 100 + resp[5];
+    }
+    Log.warn("version bad response (addr %d): %02X %02X %02X", addr, resp[0], resp[1], resp[2]);
+    return -2;
+}
+
 static void sendRelayCmd(uint8_t device, int channel, bool on) {
     uint8_t cmd[9];
     cmd[0] = device;
@@ -115,6 +148,19 @@ uint32_t relayOnTime[NUM_MACHINES]                  = {};
 int      previousDIBitmask[3]                       = {-1, -1, -1};  // indexed by device-1
 int      pollIndex                                  = 0;             // round-robin device index (0–2)
 
+// Bus scan. moduleVersion[] is indexed by RS485 address 1–8 and holds either a
+// packed version (major*10000 + minor*100 + patch) or one of these codes:
+static const int MOD_ABSENT   = -1;  // nothing answered at this address
+static const int MOD_CONFLICT = -2;  // malformed reply → two modules replying at once
+static const int MOD_LEGACY   = -3;  // answers queryDI but not the version query,
+                                     // i.e. still running pre-1.1.0 firmware —
+                                     // this is what a flash that never got its
+                                     // USB power-cycle looks like from here
+int      moduleVersion[BUS_SCAN_MAX_ADDR + 1] = {};
+int      scanAddr    = 1;      // 0 = idle, 1–8 = next address to probe
+bool     scanDiProbe = false;  // next cycle: DI-probe the current address
+String   busScan     = "{}";   // exposed as the "modules" Particle variable
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 static int getMachineIndex(int id) {
     for (int i = 0; i < NUM_MACHINES; i++) {
@@ -129,6 +175,24 @@ static bool isPlugged(int bitmask, int bit) {
 
 static bool isRunning(int bitmask, int bit) {
     return (bitmask & (1 << bit)) != 0;  // bit=1 → opto OFF → NC open → running
+}
+
+static void buildBusScan() {
+    String j = "{";
+    bool first = true;
+    for (int a = 1; a <= BUS_SCAN_MAX_ADDR; a++) {
+        int v = moduleVersion[a];
+        if (v == MOD_ABSENT) continue;
+        if (!first) j += ",";
+        first = false;
+        if (v == MOD_CONFLICT)    j += String::format("\"%d\":\"conflict\"", a);
+        else if (v == MOD_LEGACY) j += String::format("\"%d\":\"legacy\"", a);
+        else j += String::format("\"%d\":\"%d.%d.%d\"", a, v / 10000, (v / 100) % 100, v % 100);
+    }
+    j += "}";
+    busScan = j;
+    Log.info("bus scan: %s", busScan.c_str());
+    Particle.publish("BusScan", busScan, PRIVATE);
 }
 
 static void sendCashPaymentToSupabase(int mId, int tId) {
@@ -164,6 +228,13 @@ int testMachineIsUnderUsage(String machineIdStr) {
     int d = machines[idx].rs485Device - 1;
     if (previousDIBitmask[d] < 0) return -1;
     return isRunning(previousDIBitmask[d], machines[idx].runningBit) ? 1 : 0;
+}
+
+// rescanBus("") → 1. Non-blocking: only raises the flag, loop() walks the bus.
+int rescanBus(String unused) {
+    scanAddr    = 1;
+    scanDiProbe = false;
+    return 1;
 }
 
 // testConnectionToShop("N") → N (echo test)
@@ -210,6 +281,8 @@ void setup() {
     Particle.function("testMachineIsPowered",    testMachineIsPowered);
     Particle.function("testMachineIsUnderUsage", testMachineIsUnderUsage);
     Particle.function("publishNetworkInfo",      publishNetworkInfo);
+    Particle.function("rescanBus",               rescanBus);
+    Particle.variable("modules",                 busScan);
 
     Log.info("EasyClean RS485 ready — shopId=%d", shopId);
 }
@@ -262,7 +335,32 @@ void loop() {
         }
     }
 
-    // 3. Otherwise poll one device (round-robin: each device every ~1.5 s).
+    // 3. A bus scan in progress takes precedence over routine polling. One
+    //    address per cycle, and an address that ignores the version query gets
+    //    a DI probe on the following cycle to tell "nothing there" apart from
+    //    "there, but running firmware older than 1.1.0".
+    if (scanAddr != 0) {
+        if (scanDiProbe) {
+            scanDiProbe = false;
+            moduleVersion[scanAddr] = (queryDevice(scanAddr) >= 0) ? MOD_LEGACY : MOD_ABSENT;
+            scanAddr++;
+        } else {
+            int v = queryVersion(scanAddr);
+            if (v == -1) {
+                scanDiProbe = true;      // no answer: probe again as DI before giving up
+            } else {
+                moduleVersion[scanAddr] = (v == -2) ? MOD_CONFLICT : v;
+                scanAddr++;
+            }
+        }
+        if (scanAddr > BUS_SCAN_MAX_ADDR) {
+            scanAddr = 0;
+            buildBusScan();
+        }
+        return;
+    }
+
+    // 4. Otherwise poll one device (round-robin: each device every ~1.5 s).
     int device = pollIndex + 1;
     pollIndex  = (pollIndex + 1) % 3;
 

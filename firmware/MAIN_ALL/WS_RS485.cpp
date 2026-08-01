@@ -192,6 +192,21 @@ void RS485_Loop()
         return;
       }
 
+      // Query firmware version: ADDR 06 02 00 00 00 00 00 00
+      uint8_t query_ver[8] = {0x06, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      if(std::equal(cmd, cmd + 8, std::begin(query_ver))){
+        uint8_t response[9] = {DEVICE_ADDRESS, 0x06, 0x02,
+                               FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_PATCH,
+                               0x00, 0x00, 0x00};
+        delay(2);  // RS485 half-duplex turnaround
+        lidarSerial.write(response, 9);
+        printf("RS485 version query → %d.%d.%d\r\n",
+               FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_PATCH);
+        Receive_Flag = 0;
+        memset(buf, 0, sizeof(buf));
+        return;
+      }
+
       // Relay commands: match 8-byte payload against command table
       uint8_t i = 0;
       for(i = 0; i < numRows; i++){
