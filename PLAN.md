@@ -99,10 +99,11 @@ registros no hay forma de saber si hubo uno o dos usos reales.
 
 ## Qué hemos ganado
 
-- **El origen de los registros falsos está corregido**: la ausencia de
-  antirrebote, no la corrupción de memoria. Unos 290 registros espurios en 24
+- **El origen de los registros falsos está corregido y verificado**: la ausencia
+  de antirrebote, no la corrupción de memoria. Unos 290 registros espurios en 24
   horas venían de que una sola muestra del sensor bastaba para inventar una
-  venta.
+  venta. Confirmado con 21 h de producción: 32 registros, 0 duplicados, hueco
+  mínimo de 36 min (ver prueba 1).
 - **Producción limpia.** 328 registros falsos eliminados con criterio
   reproducible y respaldo.
 - **Visibilidad remota de los módulos.** La variable `modules` del Photon informa
@@ -209,27 +210,53 @@ se pospusiera el arreglo bueno mientras seguían entrando registros falsos.
 
 ---
 
-## Pruebas en curso
+## Pruebas
 
-**1. Un ciclo completo de secado debe producir un registro por uso.** Es la
-prueba de aceptación de `2906e05`, el antirrebote. Antes de la corrección, la
-máquina 100 generó 17 registros en 13 minutos y la 94 llegó a uno cada 10 s.
+**1. Un registro por uso — SUPERADA (02-08-2026).**
+Prueba de aceptación de `2906e05`, el antirrebote, que arrancó el 01-08 a las
+14:14:30 UTC. Medida sobre las 21 horas siguientes:
 
-El firmware con antirrebote arrancó el **2026-08-01 a las 14:14:30 UTC**:
+| máquina | dev | usos | hueco mínimo | duplicados <30 min |
+|---|---|---|---|---|
+| Lav1 (94) | 2 | 7 | 36 min | 0 |
+| Lav2 (95) | 3 | 3 | 41 min | 0 |
+| Lav3 (96) | 3 | 1 | — | 0 |
+| Lav4 (97) | 3 | 3 | 194 min | 0 |
+| Lav5 (98) | 3 | 2 | 98 min | 0 |
+| Sec6 (99) | 1 | 3 | 323 min | 0 |
+| Sec7 (100) | 1 | 6 | 40 min | 0 |
+| Sec8 (101) | 1 | 4 | 47 min | 0 |
+| Sec9 (102) | 1 | 3 | 78 min | 0 |
+| | | **32** | | **0** |
+
+Lo relevante no es el cero, que un umbral generoso podría producir, sino **dónde
+cae el hueco más corto de toda la ventana: 36 minutos**, cuando el mínimo real de
+la semana limpia era 32. Los intervalos están en el rango de una rotación física
+de máquina, no rozando el umbral.
+
+Comparación: durante el incidente las secadoras marcaban 77, 80, 80 y 55
+registros diarios; ahora hacen 3, 6, 4 y 3. La Lav1, que llegó a generar un
+registro cada 10 s durante 24 minutos seguidos, hace hoy 7 usos con 36 minutos
+de separación mínima — mismo sensor, mismo cableado, solo cambió el antirrebote.
+
+Consulta de verificación, útil para repetir la medida:
 
 ```sql
-select machine_id, count(*), min(created_at), max(created_at)
-from machine_usages
-where machine_id between 94 and 102
-  and payment_method = 1
-  and created_at > '2026-08-01 14:15:00+00'
+select machine_id,
+       count(*) as total_registros,
+       count(*) filter (where gap < interval '30 minutes') as sospechosos,
+       min(gap) as hueco_minimo
+from (
+  select machine_id, created_at,
+         created_at - lag(created_at) over (partition by machine_id order by created_at) as gap
+  from machine_usages
+  where machine_id between 94 and 102
+    and payment_method = 1
+    and created_at > '2026-08-01 14:15:00+00'
+) t
 group by machine_id
 order by machine_id;
 ```
-
-Estado a las 14:39 UTC: **25 minutos, un único registro y ninguna ráfaga**.
-Indicio favorable pero insuficiente — hace falta un ciclo completo con máquinas
-funcionando de verdad. Referencia de la semana limpia: 2–8 usos por máquina y día.
 
 **2. Estabilidad del escaneo del bus en arranque en frío.** La dirección 3 da
 `conflict` en el primer escaneo tras arrancar el Photon y se limpia al reescanear.
@@ -314,5 +341,7 @@ misma visita en que se cambie el MAX3485, para abrir el cuadro una sola vez.
 ### Datos
 - ~~Decidir qué hacer con los registros falsos del 31-07 y 01-08~~ — hecho el
   01-08: 328 borrados, 38 conservados. Ver "Limpieza de datos".
-- Si la prueba 1 detecta más ráfagas mañana, repetir la limpieza con el mismo
-  criterio sobre la nueva ventana.
+- ~~Si la prueba 1 detecta más ráfagas, repetir la limpieza~~ — no hizo falta:
+  la prueba 1 salió limpia, no hay nada nuevo que borrar.
+- La tabla `machine_usages_backup_20260801` puede eliminarse cuando se dé por
+  buena la limpieza del 01-08.
